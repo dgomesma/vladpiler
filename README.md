@@ -1,8 +1,5 @@
 # Vladpiler
-```
-Compiling vladpiler...
-Estimated time: unknown
-```
+**Project progress:** Setting up the environment.
 
 ## Fetching Testcases
 Make sure you have Pyhton 3 installed and all necessary packages. Then run
