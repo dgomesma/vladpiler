@@ -3,6 +3,7 @@
 import requests
 import os
 import sys
+import concurrent.futures
 
 from pathlib import Path
 
@@ -40,15 +41,24 @@ def fetch_file(file: str, stream_output: Callable[[bytes], None]) -> None:
     for line in response.iter_lines():
         stream_output(line)
 
-filenames = get_file_names()
-if not Path(rinha_src_dir).exists():
-    print('Creating directory ' + rinha_src_dir)
-    os.mkdir(rinha_src_dir)
-
-for filename in filenames:
+def fetch_and_write_to_file(filename: str) -> None:
     with open(rinha_src_dir + '/' + filename, 'wb') as file:
         def write_to_file(bytes: bytes) -> None:
             file.write(bytes)
             file.write(b'\n')
-        fetch_file(filename, write_to_file)         
-        
+        fetch_file(filename, write_to_file)
+ 
+filenames = get_file_names()
+if not Path(rinha_src_dir).exists():
+    print('Creating directory ' + rinha_src_dir)
+    os.mkdir(rinha_src_dir)        
+
+with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+    futures = [executor.submit(fetch_and_write_to_file, filename) for filename in filenames] 
+concurrent.futures.wait(futures)
+
+for future in futures:
+        if future.exception():
+            print(f"Thread raised an exception: {future.exception()}")
+
+print('Finito! :)')
