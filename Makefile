@@ -1,6 +1,6 @@
+LLVMCONFIG=llvm-config-14
 CXX=g++
-
-CXFLAGS=-Wall -O2 -Iinclude
+CXFLAGS=-Wall -O2 -Iinclude `$(LLVMCONFIG) --system-libs --libs`
 
 vladpiler: bin/vladpiler
 	
