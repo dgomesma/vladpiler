@@ -1,4 +1,5 @@
 %{
+#include "common.h"
 #include "lexer.h"
 #include "parser.tab.h"
 
@@ -35,10 +36,90 @@ string_lit	\"({char}|{escaped_char})*\"
 identifier	{letter}({letter}|{digit})*
  
 %%
-  // Identifiers and Assignment
+  /* Assignment */
 let {
+	return T_LET;
 }
+fn {
+	return T_FN;
+}
+\= {
+	return T_ASSIGN;
+}
+\=\> {
+	return T_ARROW;
+}
+ /* Flow Control */
+if {
+	return T_IF;
+}
+else {
+	return T_ELSE;
+}
+  /* Delimiters */ 
+\{ {
+	return T_LCB;
+}
+\} {
+	return T_RCB;
+}
+\( {
+	return T_LP;
+}
+\) {
+	return T_RP;
+}
+\, {
+	return T_COMMA;
+}
+\; {
+	return T_SEMIC;
+}
+  /* Arithmetic */
+\+ {
+	return T_PLUS;
+}
+\- {
+	return T_MINUS;
+}
+\* {
+	return T_MULT;
+}
+\/ {
+	return T_DIV;
+}
+\% {
+	return T_MOD;
+}
+  /* Comparison */
+\=\= {
+	return T_EQ;
+}
+\!\= {
+	return T_NEQ;
+}
+\< {
+	return T_LT;
+}
+\> {
+	return T_GT;
+}
+\<\= {
+	return T_GTE;
+}
+\>\= {
+	return T_LTE;
+}
+  /* Logical */
+\&\& {
+	return T_AND;
+}
+\|\| {
+	return T_OR;
+}
+  /* Variable Sized */
 {identifier} {
+	return T_IDENTIFIER;
 }
 %%
 

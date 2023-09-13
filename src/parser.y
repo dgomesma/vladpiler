@@ -2,8 +2,12 @@
 #include "common.h"
 #include "lexer.h"
 #include "parser.h"
-
 %}
+
+%union {
+	std::string *name;
+}
+
 
 // Assignment
 %token T_LET
@@ -32,6 +36,7 @@
 %token T_GT
 %token T_LT
 %token T_GTE
+%token T_LTE
 // Logical
 %token T_AND
 %token T_OR
