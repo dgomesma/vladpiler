@@ -1,6 +1,8 @@
 %{
-	#include "common.h"
-	#include "parser.h"
+#include "common.h"
+#include "lexer.h"
+#include "parser.h"
+
 %}
 
 %token T_IDENTIFIER
@@ -13,9 +15,5 @@ start: program
 
 program: T_IDENTIFIER {}
 
-
 %%
 
-int main(void) {
-    return 0;
-}

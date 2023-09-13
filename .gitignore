@@ -34,3 +34,5 @@
 # Other stuff
 testcases/
 bin/
+*.tab.*
+*.lex.*

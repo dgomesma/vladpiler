@@ -1,8 +1,12 @@
 %{
+#include "lexer.h"
+#include "parser.tab.h"
+
 int lineno = 1;
 int tokenpos = 1;
 %}
-// Lex Definitions
+
+  // Lex Definitions
   // Acceptable ASCII characters ----------------------------// 
 all_char	[\x7-\xD\x20-\x7E]
 char		[\x7-\x9\xB-\xD\x20-\x21\x23-\x5B\x5D-\x7E]
@@ -32,51 +36,12 @@ identifier	{letter}({letter}|{digit})*
  
 %%
   // Identifiers and Assignment
-{identifier}
-let
-
-  // Literal Values
-true
-false
-{int_lit}
-{string_lit}
-
-\=	{}
-\=\>
-
-  // End of statement
-\;
-
-  // Control Flow
-if
-else
-
-  // Delimiters
-\(
-\)
-\{
-\}
-
-  // Arithmetic Operations
-\+
-\-
-\*
-\/
-\%
-
-  // Comparisons
-\<
-\>
-\<\=
-\>\=
-\&\&
-\|\|
-\!
-
-  // Misc
-print
-first
-second
+let {
+}
+{identifier} {
+}
 %%
 
-
+int yyerror(const char *s) {
+	return 1;
+}
