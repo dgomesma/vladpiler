@@ -2,10 +2,9 @@
 #include "common.h"
 #include "lexer.h"
 #include "parser.tab.h"
-
-int lineno = 1;
-int tokenpos = 1;
 %}
+
+%option yylineno
 
   // Lex Definitions
   // Acceptable ASCII characters ----------------------------// 
@@ -119,9 +118,11 @@ else {
 }
   /* Literal Values */
 true {
+	yylval.int64_val = true;
 	return T_TRUE;	
 }
 false {
+	yylval.int64_val = false;
 	return T_FALSE;
 }
   /* Misc */
@@ -136,15 +137,41 @@ second {
 }
   /* Variable Sized */
 {string_lit} {
+	yylval.str_ptr = new std::string;
+	Lexer::get_str(*yylval.str_ptr);	
 	return T_STRING;
 }
-{int_lit} {
+{dec_lit} {
+	yylval.int64_val = Lexer::get_number(10);
+	return T_NUMBER;	
+}
+{hex_lit} {
+	yylval.int64_val = Lexer::get_number(16);
+	return T_NUMBER;
+}
+{bin_lit} {
+	yylval.int64_val = Lexer::get_number(2);
 	return T_NUMBER;
 }
 {identifier} {
+	yylval.str_ptr = new std::string;
+	Lexer::get_str(*yylval.str_ptr);
 	return T_IDENTIFIER;
 }
 %%
+
+namespace Lexer {
+	inline int64_t get_number(int base) {
+		size_t offset = base != 10 ? 2 : 0;
+		char* end = yytext + yyleng;
+		
+		return strtol(yytext + offset, &end, base);
+	}
+
+	inline void get_str(std::string& buffer) {
+		str.assign(yytext, yyleng);
+	}
+}
 
 int yyerror(const char *s) {
 	return 1;

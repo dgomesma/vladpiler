@@ -6,8 +6,7 @@
 
 %union {
 	std::string* str_ptr;
-	uint64_t uint64_val;
-	bool bool_val;
+	int64_t int64_val;
 }
 
 
