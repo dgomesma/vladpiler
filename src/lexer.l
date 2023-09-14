@@ -169,7 +169,7 @@ namespace Lexer {
 	}
 
 	inline void get_str(std::string& buffer) {
-		str.assign(yytext, yyleng);
+		buffer.assign(yytext, yyleng);
 	}
 }
 
