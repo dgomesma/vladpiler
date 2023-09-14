@@ -5,7 +5,9 @@
 %}
 
 %union {
-	std::string *name;
+	std::string* str_ptr;
+	uint64_t uint64_val;
+	bool bool_val;
 }
 
 
@@ -40,13 +42,16 @@
 // Logical
 %token T_AND
 %token T_OR
+// Literal Values
+%token T_NUMBER
+%token T_TRUE
+%token T_FALSE
+%token T_STRING
 // Misc
 %token T_PRINT
 %token T_FIRST
 %token T_SECOND
 // Variable Sized
-%token T_STRING
-%token T_NUMBER
 %token T_IDENTIFIER
 %%
 

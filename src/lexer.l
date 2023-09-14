@@ -28,7 +28,7 @@ escaped_char	\\[nrtvfab\\\'\"]
 char_lit	\'({char_lit_chars}|{escaped_char})\'
 dec_lit		({decimal_digit})+
 hex_lit		0(x|X)({hex_digit})+
-bin_lit		0(x|X)({bin_digit})+
+bin_lit		0(b|B)({bin_digit})+
 int_lit		({dec_lit}|{hex_lit}|{bin_lit})
 string_lit	\"({char}|{escaped_char})*\"
 
@@ -117,7 +117,30 @@ else {
 \|\| {
 	return T_OR;
 }
+  /* Literal Values */
+true {
+	return T_TRUE;	
+}
+false {
+	return T_FALSE;
+}
+  /* Misc */
+print {
+	return T_PRINT;
+}
+first {
+	return T_FIRST;
+}
+second {
+	return T_SECOND;
+}
   /* Variable Sized */
+{string_lit} {
+	return T_STRING;
+}
+{int_lit} {
+	return T_NUMBER;
+}
 {identifier} {
 	return T_IDENTIFIER;
 }
