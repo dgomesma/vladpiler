@@ -168,9 +168,17 @@ namespace Lexer {
 		return strtol(yytext + offset, &end, base);
 	}
 
-	inline void get_str(std::string& buffer) {
+	void get_str(std::string& buffer) {
 		buffer.assign(yytext, yyleng);
 	}
+
+	void tokens_scanner() {
+	  while (yylex()) {
+	    std::string buffer;
+	    Lexer::get_str(buffer);
+	    std::cout << "Matched Token: " << buffer << std::endl; 
+	  }
+	}	
 }
 
 int yyerror(const char *s) {

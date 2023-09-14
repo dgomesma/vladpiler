@@ -4,9 +4,9 @@
 #include "common.h"
 
 namespace Lexer {
-	inline int64_t get_number(int base);
-
-	inline void get_str(std::string& str); 
+	int64_t get_number(int base);
+	void get_str(std::string& str); 
+  void tokens_scanner();
 }
 
 extern "C"

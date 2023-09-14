@@ -1,6 +1,8 @@
 #include <iostream>
 #include <cxxopts.hpp>
 #include <boost/bimap.hpp>
+#include "common.h"
+#include "lexer.h"
 
 enum class program_t : uint8_t {
   LEXER
@@ -34,6 +36,14 @@ int main(int argc, char* argv[]) {
   args_t args;
   init_global();
   parse_args(argc, argv, args);
+
+  switch (args.main) {
+    case program_t::LEXER:
+      Lexer::tokens_scanner();
+      break;
+    default:
+      break;
+  }
 
   std::cout << "Program: " << program_map.right.at(args.main) << std::endl;
   return 0;
