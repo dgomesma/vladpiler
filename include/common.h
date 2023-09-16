@@ -5,5 +5,9 @@
 #include <cstdint>
 #include <string>
 #include <cstdlib>
+#include <stdio.h>
+#include <errno.h>
+#include <sysexits.h>
+#include <cassert>
 
 #endif

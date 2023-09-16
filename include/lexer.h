@@ -6,7 +6,7 @@
 namespace Lexer {
 	int64_t get_number(int base);
 	void get_str(std::string& str); 
-  void tokens_scanner();
+  void tokens_scanner(FILE* src);
 }
 
 extern "C"

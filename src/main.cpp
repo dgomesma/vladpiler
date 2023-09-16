@@ -9,7 +9,8 @@ enum class program_t : uint8_t {
 };
 
 struct args_t {
-   program_t main;
+  program_t main;
+  FILE* src;
 };
 
 boost::bimap<std::string_view, program_t> program_map;
@@ -18,18 +19,34 @@ void init_global() {
     program_map.insert({"lexer", program_t::LEXER});
 }
 
+FILE* read_file(const std::string& filepath) {
+  if (filepath.empty()) {
+    std::cerr << "No source file provided." << std::endl;
+    exit(EX_NOINPUT);
+  }
+  FILE* file = fopen(filepath.data(), "r");
+  if (file == NULL) {
+    std::cerr << "Error reading " << filepath << ": " << strerror(errno) << std::endl; 
+    exit(EX_NOINPUT);
+  }
+  return file;
+}
+
 void parse_args(int argc, char* argv[], args_t& args) {
-  constexpr const char program_arg[] = "program";
+  constexpr const char prog_arg[] = "program";
+  constexpr const char src_arg[] = "source"; 
   
   cxxopts::Options options_parser(
       "vladpiler",
       "Vladiau's convoluted rinha compiler. Use at your own risk."
     );
   options_parser.add_options()
-  (program_arg, "Main program to be run", cxxopts::value<std::string>()->default_value("lexer"));
+  (prog_arg, "Main program to be run", cxxopts::value<std::string>()->default_value("lexer"))
+  (src_arg, "Source file to read from", cxxopts::value<std::string>()->default_value(""));
   auto options = options_parser.parse(argc, argv);
 
-  args.main = program_map.left.at(options[program_arg].as<std::string>());
+  args.main = program_map.left.at(options[prog_arg].as<std::string>());
+  args.src = read_file(options[src_arg].as<std::string>());
 }
 
 int main(int argc, char* argv[]) {
@@ -39,7 +56,7 @@ int main(int argc, char* argv[]) {
 
   switch (args.main) {
     case program_t::LEXER:
-      Lexer::tokens_scanner();
+      Lexer::tokens_scanner(args.src);
       break;
     default:
       break;
