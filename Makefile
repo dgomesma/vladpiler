@@ -1,9 +1,17 @@
 LLVMCONFIG=llvm-config
-LIBS=-lfl
+LFLAGS=-lfl
 CXX=g++
-CXFLAGS=-Wall -O2 -Iinclude `$(LLVMCONFIG) --system-libs --libs` $(LIBS)
+
+ifeq ($(release), 1)
+	DFLAGS=-O2
+else
+	DFLAGS=-O0 -g
+endif
+
+CXFLAGS=-Wall -Wno-unused-function $(DFLAG) -Iinclude `$(LLVMCONFIG) --system-libs --libs` $(LFLAGS)
 
 OBJS=build/main.o build/parser.tab.o build/lexer.lex.o build/lexer.o
+
 vladpiler: bin/vladpiler
 	
 bin/vladpiler: parse_src $(OBJS)
