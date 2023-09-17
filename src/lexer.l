@@ -158,6 +158,14 @@ second {
 	Lexer::get_str(*yylval.str_ptr);
 	return T_IDENTIFIER;
 }
+
+{whitespace} {}
+
+\n {}
+
+. {}
+
+
 %%
 
 int yyerror(const char *s) {
