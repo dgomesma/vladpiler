@@ -73,6 +73,5 @@ int main(int argc, char* argv[]) {
       break;
   }
 
-  std::cout << "Program: " << program_map.right.at(args.main) << std::endl;
   return 0;
 }
