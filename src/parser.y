@@ -52,6 +52,14 @@
 %token T_SECOND
 // Variable Sized
 %token T_IDENTIFIER
+
+%left T_SEMIC
+%left T_AND T_OR
+%left T_PLUS T_MINUS
+%left T_MULT T_DIV
+%nonassoc T_MOD
+%nonassoc T_EQ T_NEQ T_GT T_LT T_GTE T_LTE
+%nonassoc T_LP T_RP
 %%
 
 start: file 
@@ -79,32 +87,30 @@ arguments_ne: term
 	| arguments_ne T_COMMA term
 	;
 
-let: parameter T_ASSIGN term T_SEMIC term
+let: T_LET parameter T_ASSIGN term T_SEMIC term
 
 str: T_STRING
 
 int: T_NUMBER
-
-binaryop: T_PLUS
-	| T_MINUS
-	| T_MULT
-	| T_DIV
-	| T_MOD
-	| T_EQ
-	| T_NEQ
-	| T_GT
-	| T_LT
-	| T_GTE
-	| T_LTE
-	| T_AND
-	| T_OR
 
 bool: T_TRUE
 	| T_FALSE
 
 if: T_IF T_LP term T_RP T_LCB term T_RCB T_ELSE T_LCB term T_RCB
 
-binary: term binaryop term
+binary: term T_PLUS term
+	| term T_MINUS term
+	| term T_MULT term
+	| term T_DIV term
+	| term T_MOD term
+	| term T_EQ term
+	| term T_NEQ term
+	| term T_GT term
+	| term T_LT term
+	| term T_GTE term
+	| term T_LTE term
+	| term T_AND term
+	| term T_OR term
 
 tuple: T_LP term T_COMMA term T_RP
 
