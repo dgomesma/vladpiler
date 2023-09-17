@@ -1,5 +1,5 @@
 # Vladpiler
-**Project progress:** Setting up the environment.
+**Project progress:** Generating codegen...
 
 ## Fetching Testcases
 Make sure you have Pyhton 3 installed and all necessary packages. Then run
