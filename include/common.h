@@ -9,5 +9,6 @@
 #include <errno.h>
 #include <sysexits.h>
 #include <cassert>
+#include <map>
 
 #endif
