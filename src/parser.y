@@ -54,9 +54,78 @@
 %token T_IDENTIFIER
 %%
 
-start: program
+start: file 
 
-program: T_IDENTIFIER {}
+file: term
 
+parameters: parameters T_COMMA parameter
+	| parameter
+	|
+	;
+
+parameter: T_IDENTIFIER
+
+var: T_IDENTIFIER
+
+function: T_FN T_LP parameters T_RP T_ARROW T_LCB term T_RCB
+
+call: T_IDENTIFIER T_LP arguments T_RP
+
+arguments: arguments_ne
+	| // Empty arguments
+	;
+
+arguments_ne: term
+	| arguments_ne T_COMMA term
+	;
+
+let: parameter T_ASSIGN term T_SEMIC term
+
+str: T_STRING
+
+int: T_NUMBER
+
+binaryop: T_PLUS
+	| T_MINUS
+	| T_MULT
+	| T_DIV
+	| T_MOD
+	| T_EQ
+	| T_NEQ
+	| T_GT
+	| T_LT
+	| T_GTE
+	| T_LTE
+	| T_AND
+	| T_OR
+
+bool: T_TRUE
+	| T_FALSE
+
+if: T_IF T_LP term T_RP T_LCB term T_RCB T_ELSE T_LCB term T_RCB
+
+binary: term binaryop term
+
+tuple: T_LP term T_COMMA term T_RP
+
+first: T_FIRST T_LP term T_RP
+
+second: T_SECOND T_LP term T_RP
+
+print: T_PRINT T_LP term T_RP
+
+term: int
+	| str
+	| call
+	| binary
+	| function
+	| let
+	| if
+	| print
+	| first
+	| second
+	| bool
+	| tuple
+	| var
 %%
 
