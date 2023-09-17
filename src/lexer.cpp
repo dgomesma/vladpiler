@@ -5,7 +5,7 @@
 extern FILE* yyin;
 extern char* yytext;
 extern int yyleng;
-extern int yylinelo;
+extern int yylineno;
 
 namespace Lexer {
 	int64_t get_number(int base) {
@@ -25,7 +25,7 @@ namespace Lexer {
 	  while (yylex()) {
 	    std::string buffer;
 	    Lexer::get_str(buffer);
-	    std::cout << "Matched Token: " << buffer << std::endl; 
+	    std::cout << "Matched Token on line " << yylineno << ": " << buffer << std::endl; 
 	  }
 	}	
 }
