@@ -43,9 +43,6 @@ namespace AST {
 
   struct Localization {
     uint64_t beginLine;
-    uint64_t endLine;
-    uint64_t beginCol;
-    uint64_t endCol;
   };
 
   struct SymbolInfo {
@@ -67,6 +64,7 @@ namespace AST {
   };
 
   struct File : Symbol {
+    std::string filename;
     File(const SymbolInfo& info, const Term& term);
   };
 

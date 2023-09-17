@@ -3,6 +3,11 @@
 
 #include "common.h"
 
+extern FILE* yyin;
+extern char* yytext;
+extern int yyleng;
+extern int yylineno;
+
 namespace Lexer {
 	int64_t get_number(int base);
 	void get_str(std::string& str); 
