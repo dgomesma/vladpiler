@@ -14,6 +14,8 @@
 #include <errno.h>
 #include <sysexits.h>
 
+// Attempts to read the file specified at filepath. Exits with errors if unable
+// to read.
 FILE* read_file(const std::string& filepath);
 
 #endif
