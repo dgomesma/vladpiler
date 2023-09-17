@@ -87,44 +87,89 @@ namespace AST {
   };
 
   struct Binary : Term {
-    Term lhs;
-    Term rhs;
+    std::unique_ptr<Term> lhs;
+    std::unique_ptr<Term> rhs;
+    BinOp binop;
+
+    Binary(std::unique_ptr<Term>&& _lhs, std::unique_ptr<Term>&& _rhs, BinOp _binop);
+  };
+
+  struct Parameter: Symbol {
+    std::string identifier;
+    Descriptor* descriptor;
+
+    Parameter(std::string&& _identifier, Descriptor* _descriptor=nullptr);
+  };
+
+  struct Parameters : Symbol {
+    std::vector<Parameter> params;
+
+    Parameters(std::vector<Parameter>&& _params);
   };
 
   struct Function : Term {
-    
+    Parameters parameters;
+    std::unique_ptr<Term> function;
+
+    Function(Parameters&& _parameters, std::unique_ptr<Term>&& _function);
   };
 
   struct Let : Term {
-    
+    Parameter parameter;
+    std::unique_ptr<Term> val;
+    std::unique_ptr<Term> next;
+
+    Let(Parameter&& _parameter,
+      std::unique_ptr<Term>&& _val, 
+      std::unique_ptr<Term>&& next);
   };
 
   struct If : Term {
-    
+    std::unique_ptr<Term> condition;
+    std::unique_ptr<Term> then;
+    std::unique_ptr<Term> orElse; // Reminder: else is a reserved keyword ;) 
+
+    If(std::unique_ptr<Term>&& _condition, 
+      std::unique_ptr<Term>&& then, 
+      std::unique_ptr<Term>&& orElse);
   };
 
   struct Print : Term {
-    
+    std::unique_ptr<Term> arg;
+
+    Print(std::unique_ptr<Term>&& _arg);
   };
 
   struct First : Term {
-    
+    std::unique_ptr<Term> arg;
+
+    First(std::unique_ptr<Term>&& _arg);
   };
 
   struct Second : Term {
-    
+    std::unique_ptr<Term> arg;
+
+    Second(std::unique_ptr<Term>&& _arg);
   };
 
   struct Bool : Term {
-    
+    bool val;
+
+    Bool(bool _val);
   };
 
   struct Tuple : Term {
-    
+    std::unique_ptr<Term> first;
+    std::unique_ptr<Term> second;
+
+    Tuple(std::unique_ptr<Term>&& first, std::unique_ptr<Term>&& second);
   };
 
   struct Var : Term {
-    
+    std::string name;
+    Descriptor* descriptor;
+
+    Var(std::string&& name, Descriptor* descriptor);
   };
 }
 
