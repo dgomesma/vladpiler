@@ -1,5 +1,18 @@
 #include "common.h"
 #include "compiler.h"
+#include "parser.tab.h"
+
+llvm::Module* llvm_module;
+llvm::LLVMContext llvm_context;
+SymbolTableStack symtbl_stack;
+
+//==================================
+// Symbol Table
+//==================================
+
+SymbolTableStack::SymbolTableStack() {
+  pushScope();
+}
 
 Descriptor* SymbolTableStack::getDescriptor(const std::string& symbol) const {
   for (const SymbolTable& table : symbol_tables) {
@@ -29,6 +42,9 @@ void SymbolTableStack::popScope() {
   symbol_tables.pop_back();
 }
 
-void compiler() {
+//
 
+int compiler() {
+  llvm::Module* module = new llvm::Module("Vladpiler", llvm_context);
+  return yyparse();
 }

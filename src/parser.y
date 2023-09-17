@@ -2,6 +2,7 @@
 #include "common.h"
 #include "lexer.h"
 #include "parser.h"
+#include "compiler.h"
 %}
 
 %union {
@@ -63,6 +64,9 @@
 %%
 
 start: file 
+	{
+		
+	}
 
 file: term
 
