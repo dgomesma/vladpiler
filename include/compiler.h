@@ -10,7 +10,9 @@
 #include "llvm/IR/IRBuilder.h"
 
 // Compiles the rinha file
-int compiler(const std::string& filename);
+namespace Compiler {
+  int compile(const std::string& filename);
+}
 
 using Descriptor = llvm::Value;
 using SymbolTable = std::map<std::string, Descriptor*>;
@@ -68,7 +70,13 @@ namespace AST {
 
   struct File : Symbol {
     std::string filename;
-    File(const SymbolInfo& info, const Term& term);
+    std::unique_ptr<Term> term;
+
+    File(
+      const SymbolInfo& info,
+      const std::string& filename,
+      std::unique_ptr<Term> term
+    );
   };
 
   struct Int : Term {
@@ -92,7 +100,7 @@ namespace AST {
     std::unique_ptr<Term> rhs;
     BinOp binop;
 
-    Binary(std::unique_ptr<Term>&& _lhs, std::unique_ptr<Term>&& _rhs, BinOp _binop);
+    Binary(std::unique_ptr<Term> _lhs, std::unique_ptr<Term> _rhs, BinOp _binop);
   };
 
   struct Parameter: Symbol {
@@ -112,7 +120,7 @@ namespace AST {
     Parameters parameters;
     std::unique_ptr<Term> function;
 
-    Function(Parameters&& _parameters, std::unique_ptr<Term>&& _function);
+    Function(Parameters&& _parameters, std::unique_ptr<Term> _function);
   };
 
   struct Let : Term {
@@ -121,8 +129,8 @@ namespace AST {
     std::unique_ptr<Term> next;
 
     Let(Parameter&& _parameter,
-      std::unique_ptr<Term>&& _val, 
-      std::unique_ptr<Term>&& next);
+      std::unique_ptr<Term> _val, 
+      std::unique_ptr<Term> next);
   };
 
   struct If : Term {
@@ -130,27 +138,27 @@ namespace AST {
     std::unique_ptr<Term> then;
     std::unique_ptr<Term> orElse; // Reminder: else is a reserved keyword ;) 
 
-    If(std::unique_ptr<Term>&& _condition, 
-      std::unique_ptr<Term>&& then, 
-      std::unique_ptr<Term>&& orElse);
+    If(std::unique_ptr<Term> _condition, 
+      std::unique_ptr<Term> then, 
+      std::unique_ptr<Term> orElse);
   };
 
   struct Print : Term {
     std::unique_ptr<Term> arg;
 
-    Print(std::unique_ptr<Term>&& _arg);
+    Print(std::unique_ptr<Term> _arg);
   };
 
   struct First : Term {
     std::unique_ptr<Term> arg;
 
-    First(std::unique_ptr<Term>&& _arg);
+    First(std::unique_ptr<Term> _arg);
   };
 
   struct Second : Term {
     std::unique_ptr<Term> arg;
 
-    Second(std::unique_ptr<Term>&& _arg);
+    Second(std::unique_ptr<Term> _arg);
   };
 
   struct Bool : Term {
