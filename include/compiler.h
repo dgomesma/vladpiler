@@ -9,6 +9,9 @@
 #include "llvm/IR/Verifier.h"
 #include "llvm/IR/IRBuilder.h"
 
+// Compiles the rinha file
+int compiler(const std::string& filename);
+
 using Descriptor = llvm::Value;
 using SymbolTable = std::map<std::string, Descriptor*>;
 

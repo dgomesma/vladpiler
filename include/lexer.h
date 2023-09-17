@@ -11,7 +11,7 @@ extern int yylineno;
 namespace Lexer {
 	int64_t get_number(int base);
 	void get_str(std::string& str); 
-  void tokens_scanner(FILE* src);
+  void tokens_scanner(const std::string& filename);
 }
 
 extern "C"
