@@ -35,6 +35,7 @@ FILE* read_file(const std::string& filepath) {
 void parse_args(int argc, char* argv[], args_t& args) {
   constexpr const char prog_arg[] = "program";
   constexpr const char src_arg[] = "source"; 
+  constexpr const char help_arg[] = "help";
   
   cxxopts::Options options_parser(
       "vladpiler",
@@ -45,8 +46,15 @@ void parse_args(int argc, char* argv[], args_t& args) {
     );
   options_parser.add_options()
   (prog_arg, "Main program to be run", cxxopts::value<std::string>()->default_value("lexer"))
-  (src_arg, "Source file to read from", cxxopts::value<std::string>()->default_value(""));
+  (src_arg, "Source file to read from", cxxopts::value<std::string>()->default_value(""))
+  (help_arg, "Print help message in case you're not based enough to guess the "
+    "arguments for this program by sole intuition and divine clairvoyance.");
   auto options = options_parser.parse(argc, argv);
+
+  if (options.count("help")) {
+    std::cout << options_parser.help() << std::endl;
+    exit(EXIT_SUCCESS);
+  }
 
   args.main = program_map.left.at(options[prog_arg].as<std::string>());
   args.src = read_file(options[src_arg].as<std::string>());
