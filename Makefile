@@ -10,7 +10,7 @@ endif
 
 CXFLAGS=-Wall -Wno-unused-function $(DFLAG) -Iinclude `$(LLVMCONFIG) --system-libs --libs` $(LFLAGS)
 
-OBJS=build/main.o build/parser.tab.o build/lexer.lex.o build/lexer.o build/compiler.o
+OBJS=build/main.o build/parser.tab.o build/lexer.lex.o build/lexer.o build/compiler.o build/common.o
 
 vladpiler: bin/vladpiler
 	
