@@ -38,7 +38,10 @@ void parse_args(int argc, char* argv[], args_t& args) {
   
   cxxopts::Options options_parser(
       "vladpiler",
-      "Vladiau's convoluted rinha compiler. Use at your own risk."
+      "Vladiau's convoluted rinha compiler. The writer of this program does not "
+      "assume any responsibility for any physical or psychological damage, "
+      "triggers, traumas, cringe, or segfaults caused by this program. Use at "
+      "your sole discretion and risk."
     );
   options_parser.add_options()
   (prog_arg, "Main program to be run", cxxopts::value<std::string>()->default_value("lexer"))
