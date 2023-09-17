@@ -3,9 +3,13 @@
 #include <boost/bimap.hpp>
 #include "common.h"
 #include "lexer.h"
+#include "compiler.h"
+
+constexpr const char lexer_str[] = "lexer";
+constexpr const char comp_str[] = "compiler";
 
 enum class program_t : uint8_t {
-  LEXER
+  LEXER, COMPILER
 };
 
 struct args_t {
@@ -16,7 +20,8 @@ struct args_t {
 boost::bimap<std::string_view, program_t> program_map;
 
 void init_global() {
-    program_map.insert({"lexer", program_t::LEXER});
+  program_map.insert({lexer_str, program_t::LEXER});
+  program_map.insert({comp_str, program_t::COMPILER});
 }
 
 void parse_args(int argc, char* argv[], args_t& args) {
@@ -32,7 +37,7 @@ void parse_args(int argc, char* argv[], args_t& args) {
       "your sole discretion and risk."
     );
   options_parser.add_options()
-  (prog_arg, "Main program to be run", cxxopts::value<std::string>()->default_value("lexer"))
+  (prog_arg, "Main program to be run", cxxopts::value<std::string>()->default_value(comp_str))
   (src_arg, "Source file to read from", cxxopts::value<std::string>()->default_value(""))
   (help_arg, "Print help message in case you're not based enough to guess the "
     "arguments for this program by sole intuition and divine clairvoyance.");
@@ -55,6 +60,9 @@ int main(int argc, char* argv[]) {
   switch (args.main) {
     case program_t::LEXER:
       Lexer::tokens_scanner(args.filename);
+      break;
+    case program_t::COMPILER:
+      Compiler::compile(args.filename);
       break;
     default:
       break;

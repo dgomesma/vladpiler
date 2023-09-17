@@ -43,7 +43,7 @@ void SymbolTableStack::popScope() {
   symbol_tables.pop_back();
 }
 
-int compiler(const std::string& filename) {
+int Compiler::compile(const std::string& filename) {
   yyin = read_file(filename);
   int ret = yyparse();
   if (ret != 0) {
