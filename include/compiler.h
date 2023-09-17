@@ -50,21 +50,20 @@ namespace AST {
     uint64_t beginLine;
   };
 
+  /* Will consider smarter ways to include this data inside of
+     Symbols without requiring passing an argument.
   struct SymbolInfo {
     std::string text;
     Localization loc;
 
     SymbolInfo(const Localization& loc, std::string&& text);
   };
+  */
 
   struct Symbol {
-    SymbolInfo info;
-
-    Symbol(const SymbolInfo& info);
   };  
-
   
-  struct Term : Symbol {
+  struct Term : virtual Symbol {
     virtual llvm::Value* getVal() = 0;      
   };
 
@@ -73,7 +72,6 @@ namespace AST {
     std::unique_ptr<Term> term;
 
     File(
-      const SymbolInfo& info,
       const std::string& filename,
       std::unique_ptr<Term> term
     );
@@ -114,13 +112,14 @@ namespace AST {
     std::vector<Parameter> params;
 
     Parameters(std::vector<Parameter>&& _params);
+    Parameters(Parameters&& _params);
   };
 
   struct Function : Term {
     Parameters parameters;
-    std::unique_ptr<Term> function;
+    std::unique_ptr<Term> value;
 
-    Function(Parameters&& _parameters, std::unique_ptr<Term> _function);
+    Function(Parameters&& _parameters, std::unique_ptr<Term> _value);
   };
 
   struct Let : Term {
@@ -130,7 +129,7 @@ namespace AST {
 
     Let(Parameter&& _parameter,
       std::unique_ptr<Term> _val, 
-      std::unique_ptr<Term> next);
+      std::unique_ptr<Term> _next);
   };
 
   struct If : Term {
@@ -139,8 +138,8 @@ namespace AST {
     std::unique_ptr<Term> orElse; // Reminder: else is a reserved keyword ;) 
 
     If(std::unique_ptr<Term> _condition, 
-      std::unique_ptr<Term> then, 
-      std::unique_ptr<Term> orElse);
+      std::unique_ptr<Term> _then, 
+      std::unique_ptr<Term> _orElse);
   };
 
   struct Print : Term {
@@ -171,7 +170,7 @@ namespace AST {
     std::unique_ptr<Term> first;
     std::unique_ptr<Term> second;
 
-    Tuple(std::unique_ptr<Term>&& first, std::unique_ptr<Term>&& second);
+    Tuple(std::unique_ptr<Term> first, std::unique_ptr<Term> second);
   };
 
   struct Var : Term {
