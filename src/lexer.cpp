@@ -2,11 +2,6 @@
 #include "lexer.h"
 #include "parser.tab.h"
 
-extern FILE* yyin;
-extern char* yytext;
-extern int yyleng;
-extern int yylineno;
-
 namespace Lexer {
 	int64_t get_number(int base) {
 		size_t offset = base != 10 ? 2 : 0;

@@ -1,4 +1,5 @@
 #include "common.h"
+#include "lexer.h"
 #include "compiler.h"
 #include "parser.tab.h"
 
@@ -42,9 +43,12 @@ void SymbolTableStack::popScope() {
   symbol_tables.pop_back();
 }
 
-//
-
-int compiler() {
-  llvm::Module* module = new llvm::Module("Vladpiler", llvm_context);
-  return yyparse();
+int compiler(FILE* src) {
+  yyin = src;
+  int ret = yyparse();
+  if (ret != 0) {
+    std::cerr << "Error while parsing: " << strerror(errno) << std::endl;
+    exit(EXIT_FAILURE);
+  }
+  return EXIT_SUCCESS;
 }
