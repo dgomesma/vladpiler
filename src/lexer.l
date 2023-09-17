@@ -161,8 +161,7 @@ second {
 
 {whitespace} {}
 
-\n {}
-
+  /* If here, then there is an error/unrecognized token */
 . {}
 
 
