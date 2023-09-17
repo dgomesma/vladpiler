@@ -10,7 +10,7 @@ enum class program_t : uint8_t {
 
 struct args_t {
   program_t main;
-  FILE* src;
+  std::string filename;
 };
 
 boost::bimap<std::string_view, program_t> program_map;
@@ -44,7 +44,7 @@ void parse_args(int argc, char* argv[], args_t& args) {
   }
 
   args.main = program_map.left.at(options[prog_arg].as<std::string>());
-  args.src = read_file(options[src_arg].as<std::string>());
+  args.filename= std::move(options[src_arg].as<std::string>());
 }
 
 int main(int argc, char* argv[]) {
@@ -54,7 +54,7 @@ int main(int argc, char* argv[]) {
 
   switch (args.main) {
     case program_t::LEXER:
-      Lexer::tokens_scanner(args.src);
+      Lexer::tokens_scanner(args.filename);
       break;
     default:
       break;

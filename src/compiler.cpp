@@ -43,8 +43,8 @@ void SymbolTableStack::popScope() {
   symbol_tables.pop_back();
 }
 
-int compiler(FILE* src) {
-  yyin = src;
+int compiler(const std::string& filename) {
+  yyin = read_file(filename);
   int ret = yyparse();
   if (ret != 0) {
     std::cerr << "Error while parsing: " << strerror(errno) << std::endl;

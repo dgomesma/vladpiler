@@ -14,9 +14,8 @@ namespace Lexer {
 		buffer.assign(yytext, yyleng);
 	}
 
-	void tokens_scanner(FILE* src) {
-		assert(src);
-		yyin = src;
+	void tokens_scanner(const std::string& filename) {
+		yyin = read_file(filename);
 	  while (yylex()) {
 	    std::string buffer;
 	    Lexer::get_str(buffer);
