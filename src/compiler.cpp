@@ -3,10 +3,6 @@
 #include "compiler.h"
 #include "parser.tab.h"
 
-llvm::Module* llvm_module;
-llvm::LLVMContext llvm_context;
-SymbolTableStack symtbl_stack;
-
 //==================================
 // Symbol Table
 //==================================
@@ -89,22 +85,36 @@ namespace AST{
   Tuple::Tuple(std::unique_ptr<Term> _first, std::unique_ptr<Term> _second) :
     first(std::move(_first)), second(std::move(_second)) {}
 
-  Var::Var(std::string&& _name, Descriptor* _descriptor) :
-    name(std::move(_name)), descriptor(std::move(_descriptor)) {};
+  Var::Var(std::string&& _name) :
+    name(std::move(_name)) {};
 }
 
-int Compiler::compile(const std::string& filename) {
-  yyin = read_file(filename);
-  std::error_code fd_ostream_ec;
-  llvm::raw_fd_ostream ostream = llvm::raw_fd_ostream(filename, fd_ostream_ec);
-  llvm_module = new llvm::Module(filename, llvm_context);
-  
-  int ret = yyparse();
-  if (ret != 0) {
-    std::cerr << "Error while parsing: " << strerror(errno) << std::endl;
-    exit(EXIT_FAILURE);
+namespace Compiler {
+  Context* context;
+
+  Context::Context(const std::string& _filename) :
+    llvm_module(new llvm::Module(_filename, llvm_context)),
+    filename(_filename) {
+    std::error_code fd_ostream_ec;
+    ostream = std::make_unique<llvm::raw_fd_ostream>(_filename, fd_ostream_ec);
+  };
+
+  void Context::printOut() {
+    llvm_module->print(*ostream, nullptr);
   }
 
-  llvm_module->print(ostream, nullptr);
-  return EXIT_SUCCESS;
+  int compile(const std::string& _filename) {
+    yyin = read_file(_filename);
+    context = new Context(_filename);
+  
+    int ret = yyparse();
+    if (ret != 0) {
+      std::cerr << "Error while parsing: " << strerror(errno) << std::endl;
+      exit(EXIT_FAILURE);
+    }
+
+    context->printOut();
+    delete context;
+    return EXIT_SUCCESS;
+  }
 }

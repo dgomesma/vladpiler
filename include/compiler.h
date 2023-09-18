@@ -9,14 +9,11 @@
 #include "llvm/IR/Verifier.h"
 #include "llvm/IR/IRBuilder.h"
 
-// Compiles the rinha file
-namespace Compiler {
-  int compile(const std::string& filename);
-}
-
+// Using aliases because there types might be subject to change
 using Descriptor = llvm::Value;
 using SymbolTable = std::map<std::string, Descriptor*>;
 
+// Keeps track of scoped symbols
 struct SymbolTableStack {
   std::vector<SymbolTable> symbol_tables;
 
@@ -175,10 +172,32 @@ namespace AST {
 
   struct Var : Term {
     std::string name;
-    Descriptor* descriptor;
 
-    Var(std::string&& name, Descriptor* descriptor);
+    Var(std::string&& name);
   };
+}
+
+namespace Compiler {
+   int compile(const std::string& filename);
+
+  /*  This class is necessary to keep context info for the parser
+      since there is no other trivial way to pass info to the parser.
+  */
+  struct Context {
+    static Context* context;
+
+    llvm::LLVMContext llvm_context;
+    std::unique_ptr<llvm::Module> llvm_module;
+    std::unique_ptr<llvm::raw_fd_ostream> ostream;
+    SymbolTableStack symtbl_stack;
+    const std::string& filename;
+
+    Context(const std::string& _filename);
+    // Prints out the code
+    void printOut();
+  };
+
+  extern Context* context;
 }
 
 #endif
