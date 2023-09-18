@@ -40,45 +40,52 @@ void SymbolTableStack::popScope() {
 }
 
 namespace AST{
-  File::File(const std::string& _filename, std::unique_ptr<Term> _term)
-    : filename(_filename), term(std::move(_term)) {}
+  File::File(const std::string& _filename, Term* _term)
+    : filename(_filename), term(_term) {}
 
   Int::Int(int64_t _value) : value(_value) {}
 
-  Str::Str(std::string&& _str) : str(std::move(_str)) {}
+  Str::Str(std::string* _str) : str(_str) {}
+
+  Arguments::Arguments() = default;
   
-  Call::Call(std::string&& _callee, std::vector<std::unique_ptr<Term>>&& _args) :
-    callee(std::move(_callee)), args(std::move(_args)) {} 
+  Call::Call(std::string* _callee, Arguments* _args) :
+    callee(*_callee), args(_args) {} 
   
-  Binary::Binary(std::unique_ptr<Term> _lhs, std::unique_ptr<Term> _rhs, BinOp _binop) :
-    lhs(std::move(_lhs)), rhs(std::move(_rhs)), binop(_binop) {}
+  Binary::Binary(Term* _lhs, Term* _rhs, BinOp _binop) :
+    lhs(_lhs), rhs(_rhs), binop(_binop) {}
 
-  Parameter::Parameter(std::string&& id) :
-    identifier(std::move(id)) {}
+  Parameter::Parameter(std::string* id) :
+    identifier(id) {}
 
-  Parameter::Parameter(Parameter&& parameter) :
-    identifier(std::move(parameter.identifier)) {}
+  Parameter::Parameter(Parameter* parameter) :
+    identifier(std::move(parameter->identifier)) {}
 
-  Function::Function(Parameters&& _parameters, std::unique_ptr<Term> _value) :
-    parameters{std::move(_parameters)}, value(std::move(_value)) {}
+  Parameters::Parameters() = default;
 
-  Let::Let(Parameter&& _parameter, std::unique_ptr<Term> _val, std::unique_ptr<Term> _next) :
-    parameter(std::move(_parameter)), val(std::move(_val)), next(std::move(_next)) {}
+  Function::Function(Parameters* _parameters, Term* _value) :
+    parameters(_parameters), value(std::move(_value)) {}
 
-  If::If(std::unique_ptr<Term> _condition, std::unique_ptr<Term> _then, std::unique_ptr<Term> _orElse) :
-    condition(std::move(_condition)), then(std::move(_then)), orElse(std::move(_orElse)) {}
+  Let::Let(Parameter* _parameter, Term* _val, Term* _next) :
+    parameter(_parameter), val(_val), next(_next) {}
 
-  Print::Print(std::unique_ptr<Term> _arg) :
-    arg(std::move(_arg)) {}
+  If::If(Term* _condition, Term* _then, Term* _orElse) :
+    condition(_condition), then(_then), orElse(_orElse) {}
 
-  First::First(std::unique_ptr<Term> _arg) :
-    arg(std::move(_arg)) {}
+  Print::Print(Term* _arg) :
+    arg(_arg) {}
 
-  Second::Second(std::unique_ptr<Term> _arg) :
-    arg(std::move(_arg)) {}
+  First::First(Term* _arg) :
+    arg(_arg) {}
 
-  Tuple::Tuple(std::unique_ptr<Term> _first, std::unique_ptr<Term> _second) :
-    first(std::move(_first)), second(std::move(_second)) {}
+  Second::Second(Term* _arg) :
+    arg(_arg) {}
+
+  Bool::Bool(bool _val) :
+    val(_val) {};
+
+  Tuple::Tuple(Term* _first, Term* _second) :
+    first(_first), second(_second) {}
 
   Var::Var(std::string&& _name) :
     name(std::move(_name)) {};
