@@ -47,11 +47,9 @@ namespace AST{
 
   Str::Str(std::string&& _str) : str(std::move(_str)) {}
   
-  Call::Call(Descriptor* _descriptor) {
-    assert(_descriptor);
-    descriptor = _descriptor;
-  };
-
+  Call::Call(std::string&& _callee, std::vector<Term>&& _args) :
+    callee(std::move(_callee)), args(std::move(_args)) {} 
+  
   Binary::Binary(std::unique_ptr<Term> _lhs, std::unique_ptr<Term> _rhs, BinOp _binop) :
     lhs(std::move(_lhs)), rhs(std::move(_rhs)), binop(_binop) {}
 
