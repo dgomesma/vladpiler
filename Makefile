@@ -3,12 +3,12 @@ LFLAGS=-lfl
 CXX=g++
 
 ifeq ($(release), 1)
-	DFLAGS=-O2
+	DFLAG=-O2
 else
-	DFLAGS=-O0 -g
+	DFLAG=-O0 -g
 endif
 
-CXFLAGS=-Wall -Wno-unused-function $(DFLAG) -Iinclude `$(LLVMCONFIG) --system-libs --libs` $(LFLAGS)
+CXFLAGS=-Wall -Wno-unused-function $(DFLAGS) -Iinclude `$(LLVMCONFIG) --system-libs --libs` $(LFLAGS)
 
 OBJS=build/main.o build/parser.tab.o build/lexer.lex.o build/lexer.o build/compiler.o build/common.o
 
