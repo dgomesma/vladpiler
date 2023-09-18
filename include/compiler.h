@@ -85,9 +85,10 @@ namespace AST {
   };
 
   struct Call : Term {
-    Descriptor* descriptor;
+    const std::string callee;
+    std::vector<Term> args;
 
-    Call(Descriptor* _descriptor);    
+    Call(std::string&& _callee, std::vector<Term>&& _args);    
   };
 
   struct Binary : Term {
