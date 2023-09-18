@@ -72,7 +72,7 @@ namespace AST {
 
     File(
       const std::string& filename,
-      std::unique_ptr<Term> term
+      Term* term
     );
   };
 
@@ -82,36 +82,8 @@ namespace AST {
   };
 
   struct Str : Term {
-    std::string str;
-    Str(std::string&& _str);
-  };
-
-  struct Call : Term {
-    const std::string callee;
-    std::vector<std::unique_ptr<Term>> args;
-
-    Call(std::string&& _callee, std::vector<std::unique_ptr<Term>>&& _args);    
-  };
-
-  struct Binary : Term {
-    std::unique_ptr<Term> lhs;
-    std::unique_ptr<Term> rhs;
-    BinOp binop;
-
-    Binary(std::unique_ptr<Term> _lhs, std::unique_ptr<Term> _rhs, BinOp _binop);
-  };
-
-  struct Parameter: Symbol {
-    std::string identifier;
-
-    Parameter(std::string&& _identifier);
-    Parameter(Parameter&& parameter);
-  };
-
-  struct Parameters : Symbol {
-    std::vector<std::unique_ptr<Parameter>> params;
-
-    Parameters();
+    std::unique_ptr<std::string> str;
+    Str(std::string* _str);
   };
 
   struct Arguments: Symbol {
@@ -120,21 +92,49 @@ namespace AST {
     Arguments();
   };
 
+  struct Call : Term {
+    const std::string callee;
+    std::unique_ptr<Arguments> args;
+
+    Call(std::string* _callee, Arguments* _args);    
+  };
+
+  struct Binary : Term {
+    std::unique_ptr<Term> lhs;
+    std::unique_ptr<Term> rhs;
+    BinOp binop;
+
+    Binary(Term* _lhs, Term* _rhs, BinOp _binop);
+  };
+
+  struct Parameter: Symbol {
+    std::unique_ptr<std::string> identifier;
+
+    Parameter(std::string* _identifier);
+    Parameter(Parameter* parameter);
+  };
+
+  struct Parameters : Symbol {
+    std::vector<std::unique_ptr<Parameter>> params;
+
+    Parameters();
+  };
+
   struct Function : Term {
-    Parameters parameters;
+    std::unique_ptr<Parameters> parameters;
     std::unique_ptr<Term> value;
 
-    Function(Parameters&& _parameters, std::unique_ptr<Term> _value);
+    Function(Parameters* _parameters, Term* _value);
   };
 
   struct Let : Term {
-    Parameter parameter;
+    std::unique_ptr<Parameter> parameter;
     std::unique_ptr<Term> val;
     std::unique_ptr<Term> next;
 
-    Let(Parameter&& _parameter,
-      std::unique_ptr<Term> _val, 
-      std::unique_ptr<Term> _next);
+    Let(Parameter* _parameter,
+      Term* _val, 
+      Term* _next);
   };
 
   struct If : Term {
@@ -142,27 +142,27 @@ namespace AST {
     std::unique_ptr<Term> then;
     std::unique_ptr<Term> orElse; // Reminder: else is a reserved keyword ;) 
 
-    If(std::unique_ptr<Term> _condition, 
-      std::unique_ptr<Term> _then, 
-      std::unique_ptr<Term> _orElse);
+    If(Term* _condition, 
+      Term* _then, 
+      Term* _orElse);
   };
 
   struct Print : Term {
     std::unique_ptr<Term> arg;
 
-    Print(std::unique_ptr<Term> _arg);
+    Print(Term* _arg);
   };
 
   struct First : Term {
     std::unique_ptr<Term> arg;
 
-    First(std::unique_ptr<Term> _arg);
+    First(Term* _arg);
   };
 
   struct Second : Term {
     std::unique_ptr<Term> arg;
 
-    Second(std::unique_ptr<Term> _arg);
+    Second(Term* _arg);
   };
 
   struct Bool : Term {
@@ -175,7 +175,7 @@ namespace AST {
     std::unique_ptr<Term> first;
     std::unique_ptr<Term> second;
 
-    Tuple(std::unique_ptr<Term> first, std::unique_ptr<Term> second);
+    Tuple(Term* first, Term* second);
   };
 
   struct Var : Term {

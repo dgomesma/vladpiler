@@ -104,7 +104,7 @@
 
 start: file 
 
-file: term { $$ = new AST::File() }
+file: term { $$ = new AST::File(Compiler::context->filename, $1); }
 
 parameters: parameters T_COMMA parameter {
 		$1->params.emplace_back($3);
@@ -117,13 +117,9 @@ parameters: parameters T_COMMA parameter {
 	}
 	| { $$ = new AST::Parameters(); }
 
-parameter: T_IDENTIFIER
-	{ $$ = new AST::Parameter(std::move($1)); }
+parameter: T_IDENTIFIER { $$ = new AST::Parameter(std::move($1)); }
 
-var: T_IDENTIFIER {
-	std::string id = std::string(yytext);
-	$$ = new AST::Var(id);
-}
+var: T_IDENTIFIER 		{ $$ = new AST::Var(std::string(yytext)); }
 
 function: T_FN T_LP parameters T_RP T_ARROW T_LCB term T_RCB
 	{ $$ = new AST::Function($3, $7); }
@@ -132,19 +128,18 @@ call: T_IDENTIFIER T_LP arguments T_RP
 	{ $$ = new AST::Call($1, $3); }
 
 arguments: arguments T_COMMA term {
-	$1->arguments.emplace_back($3);
-	$$ = $1;
-}
+		$1->args.emplace_back($3);
+		$$ = $1;
+	}
 	| term {
-	auto arguments = new AST::Arguments();
-	arguments->args.emplace_back($1);
-	$$ = arguments;
-}
+		auto arguments = new AST::Arguments();
+		arguments->args.emplace_back($1);
+		$$ = arguments;
+	}
 	| { $$ = new AST::Arguments(); }
 
-let: T_LET parameter T_ASSIGN term T_SEMIC term {
-	$$ = new AST::Let($2, $4, $6);
-}
+let: T_LET parameter T_ASSIGN term T_SEMIC term
+	{ $$ = new AST::Let($2, $4, $6); }
 
 str: T_STRING	{ $$ = new AST::Str($1);		}
 
@@ -153,65 +148,30 @@ int: T_NUMBER	{ $$ = new AST::Int($1);		}
 bool: T_TRUE	{ $$ = new AST::Bool(true); 	}
 	| T_FALSE	{ $$ = new AST::Bool(false);	}
 
-if: T_IF T_LP term T_RP T_LCB term T_RCB T_ELSE T_LCB term T_RCB {
-	$$ = new AST::If($3, $6, $10);
-}
+if: T_IF T_LP term T_RP T_LCB term T_RCB T_ELSE T_LCB term T_RCB
+	{ $$ = new AST::If($3, $6, $10); }
 
-binary: term T_PLUS term { 
-	$$ = new AST::Binary($1, $3, AST::BinOp::PLUS);
-}
-	| term T_MINUS term	{ 
-	$$ = new AST::Binary($1, $3, AST::BinOp::MINUS); 
-}
-	| term T_MULT term	{ 
-	$$ = new AST::Binary($1, $3, AST::BinOp::MULT);
-}
-	| term T_DIV term {
-	$$ = new AST::Binary($1, $3, AST::BinOp::DIV);
-}
-	| term T_MOD term { 
-	$$ = new AST::Binary($1, $3, AST::BinOp::MOD);
-}
-	| term T_EQ term { 
-	$$ = new AST::Binary($1, $3, AST::BinOp::EQ); 
-}
-	| term T_NEQ term {
-	$$ = new AST::Binary($1, $3, AST::BinOp::NEQ); 
-}
-	| term T_GT term {
-	$$ = new AST::Binary($1, $3, AST::BinOp::GT);
-}
-	| term T_LT term {
-	$$ = new AST::Binary($1, $3, AST::BinOp::LT);
-}
-	| term T_GTE term {
-	$$ = new AST::Binary($1, $3, AST::BinOp::GTE);
-}
-	| term T_LTE term { 
-	$$ = new AST::Binary($1, $3, AST::BinOp::LTE);
-}
-	| term T_AND term { 
-	$$ = new AST::Binary($1, $3, AST::BinOp::AND);
-}
-	| term T_OR term {
-	$$ = new AST::Binary($1, $3, AST::BinOp::OR);
-}
+binary: term T_PLUS term	{ $$ = new AST::Binary($1, $3, AST::BinOp::PLUS); 	}
+	| term T_MINUS term		{ $$ = new AST::Binary($1, $3, AST::BinOp::MINUS); 	}
+	| term T_MULT term		{ $$ = new AST::Binary($1, $3, AST::BinOp::MULT); 	}
+	| term T_DIV term		{ $$ = new AST::Binary($1, $3, AST::BinOp::DIV); 	}
+	| term T_MOD term		{ $$ = new AST::Binary($1, $3, AST::BinOp::MOD); 	}
+	| term T_EQ term		{ $$ = new AST::Binary($1, $3, AST::BinOp::EQ); 	}
+	| term T_NEQ term		{ $$ = new AST::Binary($1, $3, AST::BinOp::NEQ); 	}
+	| term T_GT term		{ $$ = new AST::Binary($1, $3, AST::BinOp::GT); 	}
+	| term T_LT term		{ $$ = new AST::Binary($1, $3, AST::BinOp::LT); 	}
+	| term T_GTE term		{ $$ = new AST::Binary($1, $3, AST::BinOp::GTE); 	}
+	| term T_LTE term		{ $$ = new AST::Binary($1, $3, AST::BinOp::LTE); 	}
+	| term T_AND term		{ $$ = new AST::Binary($1, $3, AST::BinOp::AND); 	}
+	| term T_OR term		{ $$ = new AST::Binary($1, $3, AST::BinOp::OR); 	}
 
 tuple: T_LP term T_COMMA term T_RP 	{ $$ = new AST::Tuple($2, $4); 	}
 
-first: T_FIRST T_LP term T_RP { 
-	std::unique_ptr<AST::Term> term($3);
-	$$ = new AST::First(std::move(term));
-}
+first: T_FIRST T_LP term T_RP		{ $$ = new AST::First($3); 		}
 
-second: T_SECOND T_LP term T_RP {
-	$$ = new AST::Second($3);
-}
+second: T_SECOND T_LP term T_RP		{ $$ = new AST::Second($3); 	}
 
-print: T_PRINT T_LP term T_RP { 
-	std::unique_ptr<AST::Term> term($3);
-	$$ = new AST::Print(std::move(term)); 
-}
+print: T_PRINT T_LP term T_RP		{ $$ = new AST::Print($3); 		}
 
 term: int			{ $$ = $1; }
 	| str			{ $$ = $1; }
