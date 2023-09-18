@@ -169,5 +169,6 @@ second {
 %%
 
 int yyerror(const char *s) {
+	std::cerr << "Error on line " << yylineno << ": " << s << std::endl;
 	return 1;
 }
