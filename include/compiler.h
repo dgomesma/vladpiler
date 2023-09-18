@@ -61,7 +61,9 @@ namespace AST {
   };  
   
   struct Term : virtual Symbol {
-    virtual llvm::Value* getVal() = 0;      
+    // Uncomment the line below as soon as codegen phase starts
+    // virtual llvm::Value* getVal();
+    Term() = default;
   };
 
   struct File : Symbol {
@@ -86,9 +88,9 @@ namespace AST {
 
   struct Call : Term {
     const std::string callee;
-    std::vector<Term> args;
+    std::vector<std::unique_ptr<Term>> args;
 
-    Call(std::string&& _callee, std::vector<Term>&& _args);    
+    Call(std::string&& _callee, std::vector<std::unique_ptr<Term>>&& _args);    
   };
 
   struct Binary : Term {
@@ -101,16 +103,21 @@ namespace AST {
 
   struct Parameter: Symbol {
     std::string identifier;
-    Descriptor* descriptor;
 
-    Parameter(std::string&& _identifier, Descriptor* _descriptor=nullptr);
+    Parameter(std::string&& _identifier);
+    Parameter(Parameter&& parameter);
   };
 
   struct Parameters : Symbol {
-    std::vector<Parameter> params;
+    std::vector<std::unique_ptr<Parameter>> params;
 
-    Parameters(std::vector<Parameter>&& _params);
-    Parameters(Parameters&& _params);
+    Parameters();
+  };
+
+  struct Arguments: Symbol {
+    std::vector<std::unique_ptr<Term>> args;
+
+    Arguments();
   };
 
   struct Function : Term {

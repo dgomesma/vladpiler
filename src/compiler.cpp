@@ -47,20 +47,17 @@ namespace AST{
 
   Str::Str(std::string&& _str) : str(std::move(_str)) {}
   
-  Call::Call(std::string&& _callee, std::vector<Term>&& _args) :
+  Call::Call(std::string&& _callee, std::vector<std::unique_ptr<Term>>&& _args) :
     callee(std::move(_callee)), args(std::move(_args)) {} 
   
   Binary::Binary(std::unique_ptr<Term> _lhs, std::unique_ptr<Term> _rhs, BinOp _binop) :
     lhs(std::move(_lhs)), rhs(std::move(_rhs)), binop(_binop) {}
 
-  Parameter::Parameter(std::string&& id, Descriptor* _descriptor) :
-    identifier(id), descriptor(_descriptor) {}
+  Parameter::Parameter(std::string&& id) :
+    identifier(std::move(id)) {}
 
-  Parameters::Parameters(std::vector<Parameter>&& _params) : 
-    params(std::move(_params)) {} 
-
-  Parameters::Parameters(Parameters&& _params) :
-    params(std::move(_params.params)) {}
+  Parameter::Parameter(Parameter&& parameter) :
+    identifier(std::move(parameter.identifier)) {}
 
   Function::Function(Parameters&& _parameters, std::unique_ptr<Term> _value) :
     parameters{std::move(_parameters)}, value(std::move(_value)) {}
