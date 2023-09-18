@@ -51,6 +51,13 @@ namespace AST{
 
   Str::Str(std::string* _str) : str(_str) {}
 
+  llvm::Value* Str::getVal() {
+    std::string* s = str.get();
+    llvm::GlobalVariable* tr = Compiler::context->llvm_builder
+      .CreateGlobalString(*str.get(), "", 0, Compiler::context->llvm_module.get());
+    // Left over from here
+  }
+
   Arguments::Arguments() = default;
   
   Call::Call(std::string* _callee, Arguments* _args) :
