@@ -61,8 +61,7 @@ namespace AST {
   };  
   
   struct Term : virtual Symbol {
-    // Uncomment the line below as soon as codegen phase starts
-    // virtual llvm::Value* getVal();
+    virtual llvm::Value* getVal() {return nullptr;};
     Term() = default;
   };
 
@@ -79,6 +78,7 @@ namespace AST {
   struct Int : Term {
     int64_t value;    
     Int(int64_t _value);
+    llvm::Value* getVal() override;
   };
 
   struct Str : Term {
@@ -195,12 +195,16 @@ namespace Compiler {
     static Context* context;
 
     llvm::LLVMContext llvm_context;
+    llvm::IRBuilder<> llvm_builder;
     std::unique_ptr<llvm::Module> llvm_module;
+    llvm::Function* main_fn;
     std::unique_ptr<llvm::raw_fd_ostream> ostream;
     SymbolTableStack symtbl_stack;
     const std::string& filename;
 
     Context(const std::string& input_file, const std::string& output_file);
+    void beginCodegen();
+    void endCodegen();
     // Prints out the code
     void printOut();
   };
