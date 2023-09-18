@@ -4,9 +4,13 @@
 #include "common.h"
 #include "lexer.h"
 #include "compiler.h"
+#include "parser.tab.h"
 
 constexpr const char lexer_str[] = "lexer";
 constexpr const char comp_str[] = "compiler";
+
+// Uncomment when running Bison with -t
+//extern int yydebug;
 
 enum class program_t : uint8_t {
   LEXER, COMPILER
@@ -22,6 +26,9 @@ boost::bimap<std::string_view, program_t> program_map;
 void init_global() {
   program_map.insert({lexer_str, program_t::LEXER});
   program_map.insert({comp_str, program_t::COMPILER});
+
+  // Uncomment when running Bison with -t
+  //yydebug = 1
 }
 
 void parse_args(int argc, char* argv[], args_t& args) {
@@ -62,7 +69,7 @@ int main(int argc, char* argv[]) {
       Lexer::tokens_scanner(args.filename);
       break;
     case program_t::COMPILER:
-      Compiler::compile(args.filename);
+      Compiler::compile(args.filename, "out");
       break;
     default:
       break;
