@@ -94,20 +94,20 @@ namespace AST{
 namespace Compiler {
   Context* context;
 
-  Context::Context(const std::string& _filename) :
-    llvm_module(new llvm::Module(_filename, llvm_context)),
-    filename(_filename) {
+  Context::Context(const std::string& input_file, const std::string& output_file) :
+    llvm_module(new llvm::Module(input_file, llvm_context)),
+    filename(input_file) {
     std::error_code fd_ostream_ec;
-    ostream = std::make_unique<llvm::raw_fd_ostream>(_filename, fd_ostream_ec);
+    ostream = std::make_unique<llvm::raw_fd_ostream>(output_file, fd_ostream_ec);
   };
 
   void Context::printOut() {
     llvm_module->print(*ostream, nullptr);
   }
 
-  int compile(const std::string& _filename) {
-    yyin = read_file(_filename);
-    context = new Context(_filename);
+  int compile(const std::string& input_file, const std::string& output_file) {
+    yyin = read_file(input_file);
+    context = new Context(input_file, output_file);
   
     int ret = yyparse();
     if (ret != 0) {

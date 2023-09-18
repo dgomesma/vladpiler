@@ -186,7 +186,7 @@ namespace AST {
 }
 
 namespace Compiler {
-   int compile(const std::string& filename);
+   int compile(const std::string& input_file, const std::string& output_file);
 
   /*  This class is necessary to keep context info for the parser
       since there is no other trivial way to pass info to the parser.
@@ -200,7 +200,7 @@ namespace Compiler {
     SymbolTableStack symtbl_stack;
     const std::string& filename;
 
-    Context(const std::string& _filename);
+    Context(const std::string& input_file, const std::string& output_file);
     // Prints out the code
     void printOut();
   };
