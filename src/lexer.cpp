@@ -1,5 +1,6 @@
 #include "common.h"
 #include "lexer.h"
+#include "compiler.h"
 #include "parser.tab.h"
 
 namespace Lexer {

@@ -111,7 +111,7 @@ namespace Compiler {
   
     int ret = yyparse();
     if (ret != 0) {
-      std::cerr << "Error while parsing: " << strerror(errno) << std::endl;
+      std::cerr << "Error while parsing. yyparse error: " << ret << std::endl;
       exit(EXIT_FAILURE);
     }
 
