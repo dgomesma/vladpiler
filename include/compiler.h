@@ -76,7 +76,7 @@ namespace AST {
   };
 
   struct Int : Term {
-    int64_t value;    
+    int32_t value;    
     Int(int64_t _value);
     llvm::Value* getVal() override;
   };
@@ -84,6 +84,7 @@ namespace AST {
   struct Str : Term {
     std::unique_ptr<std::string> str;
     Str(std::string* _str);
+    llvm::Value* getVal() override;
   };
 
   struct Arguments: Symbol {
@@ -207,6 +208,8 @@ namespace Compiler {
     void endCodegen();
     // Prints out the code
     void printOut();
+    void createMainFn();
+    void linkExternPrint();
   };
 
   extern Context* context;
