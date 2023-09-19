@@ -52,10 +52,10 @@ namespace AST{
   Str::Str(std::string* _str) : str(_str) {}
 
   llvm::Value* Str::getVal() {
-    std::string* s = str.get();
-    llvm::GlobalVariable* tr = Compiler::context->llvm_builder
+    llvm::GlobalVariable* str_var = Compiler::context->llvm_builder
       .CreateGlobalString(*str.get(), "", 0, Compiler::context->llvm_module.get());
-    // Left over from here
+    return Compiler::context->llvm_builder
+      .CreateConstGEP2_32(str_var->getValueType(), str_var, 0, 0);
   }
 
   Arguments::Arguments() = default;
@@ -105,6 +105,10 @@ namespace AST{
 namespace Compiler {
   Context* context;
 
+  void createaMainFn() {
+    
+  }
+
   Context::Context(const std::string& input_file, const std::string& output_file) :
     llvm_builder(llvm_context),
     llvm_module(new llvm::Module(input_file, llvm_context)),
@@ -113,7 +117,7 @@ namespace Compiler {
     ostream = std::make_unique<llvm::raw_fd_ostream>(output_file, fd_ostream_ec);
   };
 
-  void Context::beginCodegen() {
+  void Context::createMainFn() {
     llvm::FunctionType* ft = llvm::FunctionType::get(
       llvm_builder.getInt32Ty(),
       false
@@ -137,7 +141,72 @@ namespace Compiler {
       main_fn  
     );
 
-    llvm_builder.SetInsertPoint(bb);       
+    llvm_builder.SetInsertPoint(bb);   
+  }
+
+  void linkExternPrint() {
+    std::vector<llvm::Type *> print_bool_params_ty = {Compiler::context->llvm_builder.getInt1Ty()};
+    llvm::FunctionType* print_bool_fn_ty= llvm::FunctionType::get(
+      Compiler::context->llvm_builder.getInt1Ty(),
+      print_bool_params_ty,        
+      false
+    );
+
+    std::vector<llvm::Type *> print_int_params_ty = {Compiler::context->llvm_builder.getInt32Ty()};
+    llvm::FunctionType* print_int_fn_ty= llvm::FunctionType::get(
+      Compiler::context->llvm_builder.getInt32Ty(),
+      print_int_params_ty,        
+      false
+    );    
+
+    std::vector<llvm::Type *> print_str_params_ty = {Compiler::context->llvm_builder.getInt8PtrTy()};
+    llvm::FunctionType* print_str_fn_ty= llvm::FunctionType::get(
+      Compiler::context->llvm_builder.getInt8PtrTy(),
+      print_str_params_ty,        
+      false
+    );
+
+    std::vector<llvm::Type *> print_closure_params_ty = {Compiler::context->llvm_builder.getVoidTy()};
+    llvm::FunctionType* print_closure_fn_ty= llvm::FunctionType::get(
+      Compiler::context->llvm_builder.getVoidTy(),
+      print_str_params_ty,        
+      false
+    );    
+
+    llvm::Function *print_bool_fn = llvm::Function::Create(
+      print_bool_fn_ty,
+      llvm::Function::ExternalLinkage,
+      "print_bool",
+      Compiler::context->llvm_module.get()
+    );
+
+    
+    llvm::Function *print_int_fn = llvm::Function::Create(
+      print_int_fn_ty,
+      llvm::Function::ExternalLinkage,
+      "print_int",
+      Compiler::context->llvm_module.get()
+    );
+
+    
+    llvm::Function *print_str_fn = llvm::Function::Create(
+      print_str_fn_ty,
+      llvm::Function::ExternalLinkage,
+      "print_str",
+      Compiler::context->llvm_module.get()
+    );
+
+    llvm::Function *print_closure_fn = llvm::Function::Create(
+      print_closure_fn_ty,
+      llvm::Function::ExternalLinkage,
+      "print_str",
+      Compiler::context->llvm_module.get()
+    );
+    
+  }
+
+  void Context::beginCodegen() {
+    createMainFn();
   }
 
   void Context::endCodegen() {
