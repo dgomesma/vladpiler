@@ -46,15 +46,15 @@ namespace AST{
   Int::Int(int64_t _value) : value(_value) {}
 
   llvm::Value* Int::getVal() {
-    return Compiler::context->llvm_builder.getInt64(value);
+    return Compiler::ctx->llvm_builder.getInt64(value);
   }
 
   Str::Str(std::string* _str) : str(_str) {}
 
   llvm::Value* Str::getVal() {
-    llvm::GlobalVariable* str_var = Compiler::context->llvm_builder
-      .CreateGlobalString(*str.get(), "", 0, Compiler::context->llvm_module.get());
-    return Compiler::context->llvm_builder
+    llvm::GlobalVariable* str_var = Compiler::ctx->llvm_builder
+      .CreateGlobalString(*str.get(), "", 0, Compiler::ctx->llvm_module.get());
+    return Compiler::ctx->llvm_builder
       .CreateConstGEP2_32(str_var->getValueType(), str_var, 0, 0);
   }
 
@@ -103,7 +103,7 @@ namespace AST{
 }
 
 namespace Compiler {
-  Context* context;
+  Context* ctx;
 
   void createaMainFn() {
     
@@ -145,30 +145,30 @@ namespace Compiler {
   }
 
   void linkExternPrint() {
-    std::vector<llvm::Type *> print_bool_params_ty = {Compiler::context->llvm_builder.getInt1Ty()};
+    std::vector<llvm::Type *> print_bool_params_ty = {Compiler::ctx->llvm_builder.getInt1Ty()};
     llvm::FunctionType* print_bool_fn_ty= llvm::FunctionType::get(
-      Compiler::context->llvm_builder.getInt1Ty(),
+      Compiler::ctx->llvm_builder.getInt1Ty(),
       print_bool_params_ty,        
       false
     );
 
-    std::vector<llvm::Type *> print_int_params_ty = {Compiler::context->llvm_builder.getInt32Ty()};
+    std::vector<llvm::Type *> print_int_params_ty = {Compiler::ctx->llvm_builder.getInt32Ty()};
     llvm::FunctionType* print_int_fn_ty= llvm::FunctionType::get(
-      Compiler::context->llvm_builder.getInt32Ty(),
+      Compiler::ctx->llvm_builder.getInt32Ty(),
       print_int_params_ty,        
       false
     );    
 
-    std::vector<llvm::Type *> print_str_params_ty = {Compiler::context->llvm_builder.getInt8PtrTy()};
+    std::vector<llvm::Type *> print_str_params_ty = {Compiler::ctx->llvm_builder.getInt8PtrTy()};
     llvm::FunctionType* print_str_fn_ty= llvm::FunctionType::get(
-      Compiler::context->llvm_builder.getInt8PtrTy(),
+      Compiler::ctx->llvm_builder.getInt8PtrTy(),
       print_str_params_ty,        
       false
     );
 
-    std::vector<llvm::Type *> print_closure_params_ty = {Compiler::context->llvm_builder.getVoidTy()};
+    std::vector<llvm::Type *> print_closure_params_ty = {Compiler::ctx->llvm_builder.getVoidTy()};
     llvm::FunctionType* print_closure_fn_ty= llvm::FunctionType::get(
-      Compiler::context->llvm_builder.getVoidTy(),
+      Compiler::ctx->llvm_builder.getVoidTy(),
       print_str_params_ty,        
       false
     );    
@@ -177,15 +177,15 @@ namespace Compiler {
       print_bool_fn_ty,
       llvm::Function::ExternalLinkage,
       "print_bool",
-      Compiler::context->llvm_module.get()
+      Compiler::ctx->llvm_module.get()
     );
 
-    
+  
     llvm::Function *print_int_fn = llvm::Function::Create(
       print_int_fn_ty,
       llvm::Function::ExternalLinkage,
       "print_int",
-      Compiler::context->llvm_module.get()
+      Compiler::ctx->llvm_module.get()
     );
 
     
@@ -193,14 +193,14 @@ namespace Compiler {
       print_str_fn_ty,
       llvm::Function::ExternalLinkage,
       "print_str",
-      Compiler::context->llvm_module.get()
+      Compiler::ctx->llvm_module.get()
     );
 
     llvm::Function *print_closure_fn = llvm::Function::Create(
       print_closure_fn_ty,
       llvm::Function::ExternalLinkage,
       "print_str",
-      Compiler::context->llvm_module.get()
+      Compiler::ctx->llvm_module.get()
     );
     
   }
@@ -221,17 +221,17 @@ namespace Compiler {
 
   int compile(const std::string& input_file, const std::string& output_file) {
     yyin = read_file(input_file);
-    context = new Context(input_file, output_file);
-    context->beginCodegen();
+    ctx = new Context(input_file, output_file);
+    ctx->beginCodegen();
     
     int ret = yyparse();
     if (ret != 0) {
       std::cerr << "Error while parsing. yyparse error: " << ret << std::endl;
       exit(EXIT_FAILURE);
     }
-    context->endCodegen();
-    context->printOut();
-    delete context;
+    ctx->endCodegen();
+    ctx->printOut();
+    delete ctx;
     return EXIT_SUCCESS;
   }
 }
