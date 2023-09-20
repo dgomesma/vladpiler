@@ -198,8 +198,8 @@ namespace Compiler {
     llvm::LLVMContext llvm_context;
     llvm::IRBuilder<> llvm_builder;
     std::unique_ptr<llvm::Module> llvm_module;
-    llvm::Function* main_fn;
     std::unique_ptr<llvm::raw_fd_ostream> ostream;
+    llvm::Function* main_fn;
     SymbolTableStack symtbl_stack;
     const std::string& filename;
 
@@ -212,7 +212,7 @@ namespace Compiler {
     void linkExternPrint();
   };
 
-  extern Context* context;
+  extern Context* ctx;
 }
 
 #endif
