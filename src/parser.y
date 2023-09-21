@@ -104,7 +104,7 @@
 
 start: file 
 
-file: term { $$ = new AST::File(Compiler::context->filename, $1); }
+file: term { $$ = new AST::File(Compiler::ctx->filename, $1); }
 
 parameters: parameters T_COMMA parameter {
 		$1->params.emplace_back($3);
