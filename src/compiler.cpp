@@ -43,6 +43,98 @@ namespace AST{
   File::File(const std::string& _filename, Term* _term)
     : filename(_filename), term(_term) {}
 
+  void File::Compile() {
+    linkExternPrint();
+
+    llvm::FunctionType* ft = llvm::FunctionType::get(
+      Compiler::ctx->llvm_builder.getInt32Ty(),
+      false
+    );
+
+    llvm::Function* main_fn = llvm::Function::Create(
+      ft,
+      llvm::Function::ExternalLinkage,
+      "main",
+      Compiler::ctx->llvm_module.get()
+    );
+
+    if (main_fn == nullptr) {
+      std::cerr << "Error creating main function!" << std::endl;
+      abort();
+    }
+
+    llvm::BasicBlock* bb = llvm::BasicBlock::Create(
+      Compiler::ctx->llvm_context,
+      "entry",
+      main_fn  
+    );
+
+    Compiler::ctx->llvm_builder.SetInsertPoint(bb);   
+    term->getVal();
+    Compiler::ctx->llvm_builder.CreateRet(Compiler::ctx->llvm_builder.getInt32(0));
+    llvm::verifyFunction(*main_fn);
+  };
+
+  void File::linkExternPrint() {
+    std::vector<llvm::Type *> print_bool_params_ty = {Compiler::ctx->llvm_builder.getInt1Ty()};
+    llvm::FunctionType* print_bool_fn_ty= llvm::FunctionType::get(
+      Compiler::ctx->llvm_builder.getInt1Ty(),
+      print_bool_params_ty,        
+      false
+    );
+
+    std::vector<llvm::Type *> print_int_params_ty = {Compiler::ctx->llvm_builder.getInt32Ty()};
+    llvm::FunctionType* print_int_fn_ty= llvm::FunctionType::get(
+      Compiler::ctx->llvm_builder.getInt32Ty(),
+      print_int_params_ty,        
+      false
+    );    
+
+    std::vector<llvm::Type *> print_str_params_ty = {Compiler::ctx->llvm_builder.getInt8PtrTy()};
+    llvm::FunctionType* print_str_fn_ty= llvm::FunctionType::get(
+      Compiler::ctx->llvm_builder.getInt8PtrTy(),
+      print_str_params_ty,        
+      false
+    );
+
+    std::vector<llvm::Type *> print_closure_params_ty = {Compiler::ctx->llvm_builder.getVoidTy()};
+    llvm::FunctionType* print_closure_fn_ty= llvm::FunctionType::get(
+      Compiler::ctx->llvm_builder.getVoidTy(),
+      print_str_params_ty,        
+      false
+    );    
+
+    llvm::Function *print_bool_fn = llvm::Function::Create(
+      print_bool_fn_ty,
+      llvm::Function::ExternalLinkage,
+      "print_bool",
+      Compiler::ctx->llvm_module.get()
+    );
+
+  
+    llvm::Function *print_int_fn = llvm::Function::Create(
+      print_int_fn_ty,
+      llvm::Function::ExternalLinkage,
+      "print_int",
+      Compiler::ctx->llvm_module.get()
+    );
+
+    
+    llvm::Function *print_str_fn = llvm::Function::Create(
+      print_str_fn_ty,
+      llvm::Function::ExternalLinkage,
+      "print_str",
+      Compiler::ctx->llvm_module.get()
+    );
+
+    llvm::Function *print_closure_fn = llvm::Function::Create(
+      print_closure_fn_ty,
+      llvm::Function::ExternalLinkage,
+      "print_str",
+      Compiler::ctx->llvm_module.get()
+    );
+  }  
+
   Int::Int(int64_t _value) : value(_value) {}
 
   llvm::Value* Int::getVal() {
@@ -104,10 +196,7 @@ namespace AST{
 
 namespace Compiler {
   Context* ctx;
-
-  void createaMainFn() {
-    
-  }
+  std::unique_ptr<AST::File> ast_root;
 
   Context::Context(const std::string& input_file, const std::string& output_file) :
     llvm_builder(llvm_context),
@@ -117,119 +206,21 @@ namespace Compiler {
     ostream = std::make_unique<llvm::raw_fd_ostream>(output_file, fd_ostream_ec);
   };
 
-  void Context::createMainFn() {
-    llvm::FunctionType* ft = llvm::FunctionType::get(
-      llvm_builder.getInt32Ty(),
-      false
-    );
-
-    main_fn = llvm::Function::Create(
-      ft,
-      llvm::Function::ExternalLinkage,
-      "main",
-      llvm_module.get()
-    );
-
-    if (main_fn == nullptr) {
-      std::cerr << "Error creating main function!" << std::endl;
-      abort();
-    }
-
-    llvm::BasicBlock* bb = llvm::BasicBlock::Create(
-      llvm_context,
-      "entry",
-      main_fn  
-    );
-
-    llvm_builder.SetInsertPoint(bb);   
-  }
-
-  void linkExternPrint() {
-    std::vector<llvm::Type *> print_bool_params_ty = {Compiler::ctx->llvm_builder.getInt1Ty()};
-    llvm::FunctionType* print_bool_fn_ty= llvm::FunctionType::get(
-      Compiler::ctx->llvm_builder.getInt1Ty(),
-      print_bool_params_ty,        
-      false
-    );
-
-    std::vector<llvm::Type *> print_int_params_ty = {Compiler::ctx->llvm_builder.getInt32Ty()};
-    llvm::FunctionType* print_int_fn_ty= llvm::FunctionType::get(
-      Compiler::ctx->llvm_builder.getInt32Ty(),
-      print_int_params_ty,        
-      false
-    );    
-
-    std::vector<llvm::Type *> print_str_params_ty = {Compiler::ctx->llvm_builder.getInt8PtrTy()};
-    llvm::FunctionType* print_str_fn_ty= llvm::FunctionType::get(
-      Compiler::ctx->llvm_builder.getInt8PtrTy(),
-      print_str_params_ty,        
-      false
-    );
-
-    std::vector<llvm::Type *> print_closure_params_ty = {Compiler::ctx->llvm_builder.getVoidTy()};
-    llvm::FunctionType* print_closure_fn_ty= llvm::FunctionType::get(
-      Compiler::ctx->llvm_builder.getVoidTy(),
-      print_str_params_ty,        
-      false
-    );    
-
-    llvm::Function *print_bool_fn = llvm::Function::Create(
-      print_bool_fn_ty,
-      llvm::Function::ExternalLinkage,
-      "print_bool",
-      Compiler::ctx->llvm_module.get()
-    );
-
-  
-    llvm::Function *print_int_fn = llvm::Function::Create(
-      print_int_fn_ty,
-      llvm::Function::ExternalLinkage,
-      "print_int",
-      Compiler::ctx->llvm_module.get()
-    );
-
-    
-    llvm::Function *print_str_fn = llvm::Function::Create(
-      print_str_fn_ty,
-      llvm::Function::ExternalLinkage,
-      "print_str",
-      Compiler::ctx->llvm_module.get()
-    );
-
-    llvm::Function *print_closure_fn = llvm::Function::Create(
-      print_closure_fn_ty,
-      llvm::Function::ExternalLinkage,
-      "print_str",
-      Compiler::ctx->llvm_module.get()
-    );
-    
-  }
-
-  void Context::beginCodegen() {
-    createMainFn();
-  }
-
-  void Context::endCodegen() {
-    llvm_builder.CreateRet(llvm_builder.getInt32(0));
-  }
-
   void Context::printOut() {
-    llvm::verifyFunction(*main_fn);
-    
     llvm_module->print(*ostream, nullptr);
   }
 
   int compile(const std::string& input_file, const std::string& output_file) {
     yyin = read_file(input_file);
     ctx = new Context(input_file, output_file);
-    ctx->beginCodegen();
     
     int ret = yyparse();
     if (ret != 0) {
       std::cerr << "Error while parsing. yyparse error: " << ret << std::endl;
       exit(EXIT_FAILURE);
     }
-    ctx->endCodegen();
+
+    ctx->ast_root->Compile();
     ctx->printOut();
     delete ctx;
     return EXIT_SUCCESS;

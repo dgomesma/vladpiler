@@ -73,6 +73,9 @@ namespace AST {
       const std::string& filename,
       Term* term
     );
+
+    void Compile();
+    void linkExternPrint();
   };
 
   struct Int : Term {
@@ -187,7 +190,8 @@ namespace AST {
 }
 
 namespace Compiler {
-   int compile(const std::string& input_file, const std::string& output_file);
+  int compile(const std::string& input_file, const std::string& output_file);
+
 
   /*  This class is necessary to keep context info for the parser
       since there is no other trivial way to pass info to the parser.
@@ -199,17 +203,13 @@ namespace Compiler {
     llvm::IRBuilder<> llvm_builder;
     std::unique_ptr<llvm::Module> llvm_module;
     std::unique_ptr<llvm::raw_fd_ostream> ostream;
-    llvm::Function* main_fn;
+    std::unique_ptr<AST::File> ast_root;
     SymbolTableStack symtbl_stack;
     const std::string& filename;
 
     Context(const std::string& input_file, const std::string& output_file);
-    void beginCodegen();
-    void endCodegen();
     // Prints out the code
     void printOut();
-    void createMainFn();
-    void linkExternPrint();
   };
 
   extern Context* ctx;
