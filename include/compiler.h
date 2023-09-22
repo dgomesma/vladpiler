@@ -212,6 +212,30 @@ namespace Compiler {
     void printOut();
   };
 
+  
+  class IRGenerator {
+  private:
+    static IRGenerator* singleton;
+
+    llvm::LLVMContext llvm_context;
+    llvm::IRBuilder<> llvm_builder;
+    llvm::Module llvm_module;
+    std::error_code fd_ostream_ec;
+    llvm::raw_fd_ostream ostream;
+    std::unique_ptr<AST::File> ast_root;
+    SymbolTableStack symtbl_stack;
+    const std::string& filename;
+
+    IRGenerator(const std::string& input_file, const std::string& output_file);
+
+  public:
+    static IRGenerator* initialize(const std::string& input_file, const std::string& output_file);
+    static bool isInitialized();
+    static IRGenerator& getSingleton();
+
+    void printCode();
+  };
+
   extern Context* ctx;
 }
 

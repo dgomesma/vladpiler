@@ -210,6 +210,31 @@ namespace Compiler {
     llvm_module->print(*ostream, nullptr);
   }
 
+  IRGenerator* IRGenerator::singleton = nullptr;
+
+  IRGenerator::IRGenerator(const std::string& input_file, const std::string& output_file) :
+    llvm_builder(llvm_context),
+    llvm_module(input_file, llvm_context),
+    ostream(output_file, fd_ostream_ec),
+    filename(input_file) {};
+
+  bool IRGenerator::isInitialized() { return singleton != nullptr; }
+
+  IRGenerator* IRGenerator::initialize(const std::string& input_file, const std::string& output_file) {  
+    if (isInitialized()) throw std::runtime_error("IRGenerator is already initialized.");
+    singleton = new IRGenerator(input_file, output_file);
+    return IRGenerator::singleton;
+  };
+
+  IRGenerator& IRGenerator::getSingleton() {
+    if (isInitialized()) throw std::runtime_error("IRGenerator has not been initialized.");
+    return *singleton;
+  }
+
+  void IRGenerator::printCode() {
+    llvm_module.print(ostream, nullptr);
+  };
+
   int compile(const std::string& input_file, const std::string& output_file) {
     yyin = read_file(input_file);
     ctx = new Context(input_file, output_file);
