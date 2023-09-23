@@ -98,6 +98,11 @@ namespace AST{
   Bool::Bool(bool _val) :
     val(_val) {};
 
+  llvm::Value* Bool::getVal() {
+    Compiler::IRGenerator& generator = Compiler::IRGenerator::getSingleton();
+    return generator.createBool(val); 
+  }
+
   Tuple::Tuple(Term* _first, Term* _second) :
     first(_first), second(_second) {}
 
@@ -157,6 +162,10 @@ namespace Compiler {
     builder.restoreIP(previous_point);
     return extern_fn;
   };
+
+  llvm::Value* IRGenerator::createBool(bool value) {
+    return builder.getInt1(value); 
+  }
 
   llvm::Value* IRGenerator::createInt(int32_t value) {
     return builder.getInt32(value);
