@@ -224,7 +224,11 @@ namespace Compiler {
     llvm::Function* createFunction(llvm::Type* ret, std::initializer_list<llvm::Type*> args, const std::string& name);
     llvm::Function* createFunction(llvm::Type* ret, const std::vector<llvm::Type*>& args, const std::string& name);
 
+    // Declare an extern function at the beginning of the module
     llvm::Function* declareExternFunction(llvm::Type* ret, std::initializer_list<llvm::Type*>&& args, const std::string& name);
+
+    llvm::Value* createInt(int32_t value);
+    llvm::Value* createStr(const std::string& str);
   };
 
 }
