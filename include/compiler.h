@@ -189,27 +189,6 @@ namespace AST {
 namespace Compiler {
   int compile(const std::string& input_file, const std::string& output_file);
 
-
-  /*  This class is necessary to keep context info for the parser
-      since there is no other trivial way to pass info to the parser.
-  */
-  struct Context {
-    static Context* context;
-
-    llvm::LLVMContext llvm_context;
-    llvm::IRBuilder<> llvm_builder;
-    std::unique_ptr<llvm::Module> llvm_module;
-    std::unique_ptr<llvm::raw_fd_ostream> ostream;
-    std::unique_ptr<AST::File> ast_root;
-    SymbolTableStack symtbl_stack;
-    const std::string& filename;
-
-    Context(const std::string& input_file, const std::string& output_file);
-    // Prints out the code
-    void printOut();
-  };
-
-  
   class IRGenerator {
   private:
     static IRGenerator* singleton;
@@ -248,7 +227,6 @@ namespace Compiler {
     llvm::Function* declareExternFunction(llvm::Type* ret, std::initializer_list<llvm::Type*>&& args, const std::string& name);
   };
 
-  extern Context* ctx;
 }
 
 #endif
