@@ -43,6 +43,10 @@ namespace AST{
   File::File(const std::string& _filename, Term* _term)
     : filename(_filename), term(_term) {}
 
+  void File::compile() {
+    term->getVal();
+  };
+
   Int::Int(int64_t _value) : value(_value) {}
 
   llvm::Value* Int::getVal() {
@@ -120,11 +124,11 @@ namespace Compiler {
     generator.externInsertPoint = generator.builder.saveIP();
     generator.createFunction(llvm::Type::getInt32Ty(generator.context), {}, "main");
     
-    return *IRGenerator::singleton;
+    return *singleton;
   };
 
   IRGenerator& IRGenerator::getSingleton() {
-    if (isInitialized()) throw std::runtime_error("IRGenerator has not been initialized.");
+    if (!isInitialized()) throw std::runtime_error("IRGenerator has not been initialized.");
     return *singleton;
   }
 
@@ -163,8 +167,24 @@ namespace Compiler {
     return builder.CreatePointerCast(str_var, builder.getInt8PtrTy());
   }
 
+  static std::string __rinha_file = "rinha_default_filename";
+  static AST::File* __ast_file = nullptr;
+
+  static void set_rinha_file(const std::string& rinha_file) {
+    __rinha_file = rinha_file;
+    yyin = read_file(rinha_file);
+  };
+
+  const std::string& get_rinha_filename() {
+    return __rinha_file;
+  }
+
+  void set_ast_file(AST::File* file) {
+    __ast_file = file;
+  }
+
   int compile(const std::string& input_file, const std::string& output_file) {
-    yyin = read_file(input_file);
+    set_rinha_file(input_file);
     IRGenerator& generator = IRGenerator::initialize(input_file);
     
     int ret = yyparse();
@@ -173,7 +193,10 @@ namespace Compiler {
       exit(EXIT_FAILURE);
     }
 
+    assert(__ast_file);
+    __ast_file->compile();
     generator.printCode(output_file);
+    delete __ast_file;
     return EXIT_SUCCESS;
   }
 }

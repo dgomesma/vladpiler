@@ -105,7 +105,7 @@
 start: file 
 
 // TODO: Pass in a better name
-file: term { new AST::File("Test", $1); }
+file: term { Compiler::set_ast_file(new AST::File(Compiler::get_rinha_filename(), $1)); }
 
 parameters: parameters T_COMMA parameter {
 		$1->params.emplace_back($3);
