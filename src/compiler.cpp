@@ -46,16 +46,15 @@ namespace AST{
   Int::Int(int64_t _value) : value(_value) {}
 
   llvm::Value* Int::getVal() {
-    return Compiler::ctx->llvm_builder.getInt64(value);
+    Compiler::IRGenerator& generator = Compiler::IRGenerator::getSingleton();
+    return generator.createInt(value);
   }
 
   Str::Str(std::string* _str) : str(_str) {}
 
   llvm::Value* Str::getVal() {
-    llvm::GlobalVariable* str_var = Compiler::ctx->llvm_builder
-      .CreateGlobalString(*str.get(), "", 0, Compiler::ctx->llvm_module.get());
-    return Compiler::ctx->llvm_builder
-      .CreateConstGEP2_32(str_var->getValueType(), str_var, 0, 0);
+    Compiler::IRGenerator& generator = Compiler::IRGenerator::getSingleton();
+    return generator.createStr(*str);
   }
 
   Arguments::Arguments() = default;
@@ -154,6 +153,15 @@ namespace Compiler {
     builder.restoreIP(previous_point);
     return extern_fn;
   };
+
+  llvm::Value* IRGenerator::createInt(int32_t value) {
+    return builder.getInt32(value);
+  }
+
+  llvm::Value* IRGenerator::createStr(const std::string& str) {
+    llvm::GlobalVariable* str_var = builder.CreateGlobalString(str, "", 0, &module);
+    return builder.CreatePointerCast(str_var, builder.getInt8PtrTy());
+  }
 
   int compile(const std::string& input_file, const std::string& output_file) {
     yyin = read_file(input_file);
