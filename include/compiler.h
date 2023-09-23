@@ -247,6 +247,8 @@ namespace Compiler {
     // function's entry block.
     llvm::Function* createFunction(llvm::Type* ret, std::initializer_list<llvm::Type*> args, const std::string& name);
     llvm::Function* createFunction(llvm::Type* ret, const std::vector<llvm::Type*>& args, const std::string& name);
+
+    llvm::Function* declareExternFunction(llvm::Type* ret, std::initializer_list<llvm::Type*>&& args, const std::string& name);
   };
 
   extern Context* ctx;

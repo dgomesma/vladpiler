@@ -253,6 +253,13 @@ namespace Compiler {
     return createFunction(type, args, name);
   };  
 
+  llvm::Function* IRGenerator::declareExternFunction(llvm::Type* ret, std::initializer_list<llvm::Type*>&& args, const std::string& name) {
+    llvm::IRBuilder<>::InsertPoint previous_point= builder.saveIP();
+    llvm::Function* extern_fn = createFunction(ret, args, name);
+    builder.restoreIP(previous_point);
+    return extern_fn;
+  };
+
   int compile(const std::string& input_file, const std::string& output_file) {
     yyin = read_file(input_file);
     IRGenerator& generator = IRGenerator::initialize(input_file);
