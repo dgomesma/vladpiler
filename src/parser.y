@@ -104,7 +104,8 @@
 
 start: file 
 
-file: term { Compiler::ctx->ast_root.reset(new AST::File(Compiler::ctx->filename, $1)); }
+// TODO: Pass in a better name
+file: term { new AST::File("Test", $1); }
 
 parameters: parameters T_COMMA parameter {
 		$1->params.emplace_back($3);
