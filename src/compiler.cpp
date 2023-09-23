@@ -103,20 +103,7 @@ namespace AST{
 }
 
 namespace Compiler {
-  Context* ctx;
   std::unique_ptr<AST::File> ast_root;
-
-  Context::Context(const std::string& input_file, const std::string& output_file) :
-    llvm_builder(llvm_context),
-    llvm_module(new llvm::Module(input_file, llvm_context)),
-    filename(input_file) {
-    std::error_code fd_ostream_ec;
-    ostream = std::make_unique<llvm::raw_fd_ostream>(output_file, fd_ostream_ec);
-  };
-
-  void Context::printOut() {
-    llvm_module->print(*ostream, nullptr);
-  }
 
   IRGenerator* IRGenerator::singleton = nullptr;
 
