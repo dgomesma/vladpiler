@@ -7,38 +7,6 @@
 // Symbol Table
 //==================================
 
-SymbolTableStack::SymbolTableStack() {
-  pushScope();
-}
-
-Descriptor* SymbolTableStack::getDescriptor(const std::string& symbol) const {
-  for (const SymbolTable& table : symbol_tables) {
-    SymbolTable::const_iterator descriptor = table.find(symbol);
-    if (descriptor != table.end()) return descriptor->second;
-  }
-  return nullptr;
-}
-
-Descriptor* SymbolTableStack::getDescriptorInCurScope(const std::string& symbol) const {
-  const SymbolTable& cur_scope = symbol_tables.front();
-  SymbolTable::const_iterator descriptor = cur_scope.find(symbol);
-  if (descriptor != cur_scope.end()) return descriptor->second;
-  return nullptr;
-}
-
-void SymbolTableStack::insertDescriptor(const std::string& symbol, Descriptor* descriptor) {
-  SymbolTable& cur_scope = symbol_tables.front();
-  cur_scope[symbol] = descriptor;
-}
-
-void SymbolTableStack::pushScope() {
-  symbol_tables.emplace_back();
-}
-
-void SymbolTableStack::popScope() {
-  symbol_tables.pop_back();
-}
-
 namespace AST{
   File::File(const std::string& _filename, Term* _term)
     : filename(_filename), term(_term) {}
@@ -116,6 +84,65 @@ namespace AST{
 }
 
 namespace Compiler {
+
+  SymbolTableStack::Identifier::Identifier(const std::string& _name):
+    isFn(false),
+    name(_name) {}
+  
+  SymbolTableStack::Identifier::Identifier(const std::string& _name, llvm::Value* _ret, std::initializer_list<const llvm::Value*> _args) :
+    isFn(true),
+    name(_name),
+    ret(_ret),
+    args(_args) {}
+     
+  SymbolTableStack::SymbolTableStack() {
+    pushScope();
+  }
+
+  bool SymbolTableStack::Identifier::operator==(const Identifier& other) {
+    if (name != other.name) return false;
+    if (!isFn && !other.isFn) return true;
+    else if (isFn == other.isFn) {
+      if (ret != other.ret) return false;
+      if (args.size() != other.args.size()) return false;
+      for (uint32_t i = 0; i < args.size(); i++) 
+        if (args[i] != other.args[i]) return false;
+      return true;
+    } else return false;
+  }
+
+  std::size_t SymbolTableStack::IdentifierHasher::operator()(const Identifier& id) {
+    return id.isFn ? std::hash<std::string>(id.name) : 0; 
+  }
+
+  Descriptor* SymbolTableStack::getDescriptor(const std::string& symbol) const {
+    for (const SymbolTable& table : symbol_tables) {
+      SymbolTable::const_iterator descriptor = table.find(symbol);
+      if (descriptor != table.end()) return descriptor->second;
+    }
+    return nullptr;
+  }
+
+  Descriptor* SymbolTableStack::getDescriptorInCurScope(const std::string& symbol) const {
+    const SymbolTable& cur_scope = symbol_tables.front();
+    SymbolTable::const_iterator descriptor = cur_scope.find(symbol);
+    if (descriptor != cur_scope.end()) return descriptor->second;
+    return nullptr;
+  }
+
+  void SymbolTableStack::insertDescriptor(const std::string& symbol, Descriptor* descriptor) {
+    SymbolTable& cur_scope = symbol_tables.front();
+    cur_scope[symbol] = descriptor;
+  }
+
+  void SymbolTableStack::pushScope() {
+    symbol_tables.emplace_back();
+  }
+
+  void SymbolTableStack::popScope() {
+    symbol_tables.pop_back();
+  }
+  
   std::unique_ptr<AST::File> ast_root;
 
   IRGenerator* IRGenerator::singleton = nullptr;

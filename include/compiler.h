@@ -9,22 +9,6 @@
 #include "llvm/IR/Verifier.h"
 #include "llvm/IR/IRBuilder.h"
 
-// Using aliases because there types might be subject to change
-using Descriptor = llvm::Value;
-using SymbolTable = std::map<std::string, Descriptor*>;
-
-// Keeps track of scoped symbols
-struct SymbolTableStack {
-  std::vector<SymbolTable> symbol_tables;
-
-  SymbolTableStack();
-  Descriptor* getDescriptor(const std::string& symbol) const;
-  Descriptor* getDescriptorInCurScope(const std::string& symbol) const;
-  void insertDescriptor(const std::string& symbol, Descriptor *descriptor);
-  void pushScope();
-  void popScope();
-};
-
 namespace AST {
 
   enum class BinOp {
@@ -193,12 +177,47 @@ namespace AST {
 }
 
 namespace Compiler {
+  using Descriptor = llvm::Value;
+  using SymbolTable = std::map<std::string, Descriptor*>;
+
+  // Keeps track of scoped symbols
+  class SymbolTableStack {
+    struct Identifier {
+      const bool isFn;
+      const std::string name;
+      const llvm::Value* ret;
+      const std::vector<const llvm::Value*> args;
+
+      Identifier(const std::string& name);  // Creates a variable
+      Identifier(const std::string& name, llvm::Value* ret, std::initializer_list<const llvm::Value*> args); // Creates a function
+
+      bool operator==(const Identifier& other);
+    };  
+
+    // Using aliases because there types might be subject to change
+
+    struct IdentifierHasher{
+      std::size_t operator()(const Identifier& identifier);
+    };
+
+    std::vector<SymbolTable> symbol_tables;
+
+  public:
+    SymbolTableStack();
+    Descriptor* getDescriptor(const std::string& symbol) const;
+    Descriptor* getDescriptorInCurScope(const std::string& symbol) const;
+    void insertDescriptor(const std::string& symbol, Descriptor *descriptor);
+    void pushScope();
+    void popScope();
+  };
+
   int compile(const std::string& input_file, const std::string& output_file);
   const std::string& get_rinha_filename();
   void set_ast_file(AST::File* file);
 
   class IRGenerator {
   private:
+    
     static IRGenerator* singleton;
 
     llvm::LLVMContext context;
