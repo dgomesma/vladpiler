@@ -212,18 +212,21 @@ namespace Compiler {
 
   IRGenerator* IRGenerator::singleton = nullptr;
 
-  IRGenerator::IRGenerator(const std::string& input_file, const std::string& output_file) :
-    llvm_builder(llvm_context),
-    llvm_module(input_file, llvm_context),
-    ostream(output_file, fd_ostream_ec),
+  IRGenerator::IRGenerator(const std::string& input_file) :
+    builder(context),
+    module(input_file, context),
     filename(input_file) {};
 
   bool IRGenerator::isInitialized() { return singleton != nullptr; }
 
-  IRGenerator* IRGenerator::initialize(const std::string& input_file, const std::string& output_file) {  
+  IRGenerator& IRGenerator::initialize(const std::string& input_file) {  
     if (isInitialized()) throw std::runtime_error("IRGenerator is already initialized.");
-    singleton = new IRGenerator(input_file, output_file);
-    return IRGenerator::singleton;
+    singleton = new IRGenerator(input_file);
+    IRGenerator& generator = *singleton;
+    generator.externInsertPoint = generator.builder.saveIP();
+    generator.createFunction(llvm::Type::getInt32Ty(generator.context), {}, "main");
+    
+    return *IRGenerator::singleton;
   };
 
   IRGenerator& IRGenerator::getSingleton() {
@@ -231,13 +234,28 @@ namespace Compiler {
     return *singleton;
   }
 
-  void IRGenerator::printCode() {
-    llvm_module.print(ostream, nullptr);
+  void IRGenerator::printCode(const std::string& out_file) {
+    std::error_code fd_ostream_ec;
+    llvm::raw_fd_ostream ostream(out_file, fd_ostream_ec);
+    module.print(ostream, nullptr);
   };
+
+  llvm::Function* IRGenerator::createFunction(llvm::Type* ret, const std::vector<llvm::Type*>& args, const std::string& name) {
+    llvm::FunctionType* fn_type = llvm::FunctionType::get(ret, args, false);
+    llvm::Function* fn = llvm::Function::Create(fn_type, llvm::Function::ExternalLinkage, name, module);
+    llvm::BasicBlock* fn_entry = llvm::BasicBlock::Create(context, "entry", fn);
+    builder.SetInsertPoint(fn_entry);
+    return fn;
+  }
+
+  llvm::Function* IRGenerator::createFunction(llvm::Type* type, std::initializer_list<llvm::Type*> _args, const std::string& name) {
+    const std::vector<llvm::Type*> args(_args);
+    return createFunction(type, args, name);
+  };  
 
   int compile(const std::string& input_file, const std::string& output_file) {
     yyin = read_file(input_file);
-    ctx = new Context(input_file, output_file);
+    IRGenerator& generator = IRGenerator::initialize(input_file);
     
     int ret = yyparse();
     if (ret != 0) {
@@ -245,9 +263,7 @@ namespace Compiler {
       exit(EXIT_FAILURE);
     }
 
-    ctx->ast_root->Compile();
-    ctx->printOut();
-    delete ctx;
+    generator.printCode(output_file);
     return EXIT_SUCCESS;
   }
 }
