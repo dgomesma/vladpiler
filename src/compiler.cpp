@@ -106,6 +106,11 @@ namespace AST{
   Tuple::Tuple(Term* _first, Term* _second) :
     first(_first), second(_second) {}
 
+  llvm::Value* Tuple::getVal() {
+    Compiler::IRGenerator& generator = Compiler::IRGenerator::getSingleton();
+    return generator.createTuple(first->getVal(), second->getVal());
+  }
+
   Var::Var(std::string&& _name) :
     name(std::move(_name)) {};
 }
@@ -174,6 +179,23 @@ namespace Compiler {
   llvm::Value* IRGenerator::createStr(const std::string& str) {
     llvm::GlobalVariable* str_var = builder.CreateGlobalString(str, "", 0, &module);
     return builder.CreatePointerCast(str_var, builder.getInt8PtrTy());
+  }
+
+  llvm::Value* IRGenerator::createTuple(llvm::Value* first, llvm::Value* second) {
+    llvm::Type* first_type = first->getType();
+    llvm::Type* second_type = second->getType();
+
+    llvm::StructType* tuple_type = llvm::StructType::get(context, {first_type, second_type});
+    llvm::Value* tuple = builder.CreateAlloca(tuple_type);
+    llvm::Value* zero = builder.getInt32(0);
+    llvm::Value* one = builder.getInt32(1);
+
+    llvm::Value* first_ptr = builder.CreateGEP(tuple_type, tuple, {zero, zero});
+    llvm::Value* second_ptr = builder.CreateGEP(tuple_type, tuple, {zero, one});
+
+    builder.CreateStore(first, first_ptr);
+    builder.CreateStore(second, second_ptr);
+    return tuple;
   }
 
   static std::string __rinha_file = "rinha_default_filename";
