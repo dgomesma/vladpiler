@@ -172,6 +172,8 @@ namespace AST {
     bool val;
 
     Bool(bool _val);
+
+    llvm::Value* getVal() override;
   };
 
   struct Tuple : Term {
@@ -231,6 +233,7 @@ namespace Compiler {
     // Declare an extern function at the beginning of the module
     llvm::Function* declareExternFunction(llvm::Type* ret, std::initializer_list<llvm::Type*>&& args, const std::string& name);
 
+    llvm::Value* createBool(bool value);
     llvm::Value* createInt(int32_t value);
     llvm::Value* createStr(const std::string& str);
   };
