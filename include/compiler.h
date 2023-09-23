@@ -73,9 +73,6 @@ namespace AST {
       const std::string& filename,
       Term* term
     );
-
-    void Compile();
-    void linkExternPrint();
   };
 
   struct Int : Term {
