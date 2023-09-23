@@ -217,23 +217,36 @@ namespace Compiler {
   private:
     static IRGenerator* singleton;
 
-    llvm::LLVMContext llvm_context;
-    llvm::IRBuilder<> llvm_builder;
-    llvm::Module llvm_module;
-    std::error_code fd_ostream_ec;
-    llvm::raw_fd_ostream ostream;
+    llvm::LLVMContext context;
+    llvm::IRBuilder<> builder;
+    llvm::Module module;
+
     std::unique_ptr<AST::File> ast_root;
     SymbolTableStack symtbl_stack;
     const std::string& filename;
 
-    IRGenerator(const std::string& input_file, const std::string& output_file);
+    llvm::IRBuilder<>::InsertPoint externInsertPoint;
+
+    IRGenerator(const std::string& input_file);
+    void createMain();
 
   public:
-    static IRGenerator* initialize(const std::string& input_file, const std::string& output_file);
+    enum class insert_point_loc_t {
+      EXTERN,
+      MAIN
+    };
+
+    static IRGenerator& initialize(const std::string& input_file);
     static bool isInitialized();
     static IRGenerator& getSingleton();
 
-    void printCode();
+    // Prints code to the given output file
+    void printCode(const std::string& out_file);
+
+    // Creates a function, creates an entry block and change the pointer to the
+    // function's entry block.
+    llvm::Function* createFunction(llvm::Type* ret, std::initializer_list<llvm::Type*> args, const std::string& name);
+    llvm::Function* createFunction(llvm::Type* ret, const std::vector<llvm::Type*>& args, const std::string& name);
   };
 
   extern Context* ctx;
