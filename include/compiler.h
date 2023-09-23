@@ -181,6 +181,8 @@ namespace AST {
     std::unique_ptr<Term> second;
 
     Tuple(Term* first, Term* second);
+
+    llvm::Value* getVal() override;
   };
 
   struct Var : Term {
@@ -210,8 +212,6 @@ namespace Compiler {
     llvm::IRBuilder<>::InsertPoint externInsertPoint;
 
     IRGenerator(const std::string& input_file);
-    void createMain();
-
   public:
     enum class insert_point_loc_t {
       EXTERN,
@@ -236,6 +236,7 @@ namespace Compiler {
     llvm::Value* createBool(bool value);
     llvm::Value* createInt(int32_t value);
     llvm::Value* createStr(const std::string& str);
+    llvm::Value* createTuple(llvm::Value* value1, llvm::Value* value2);
   };
 
 }
