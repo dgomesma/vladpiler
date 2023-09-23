@@ -73,6 +73,8 @@ namespace AST {
       const std::string& filename,
       Term* term
     );
+
+    void compile();
   };
 
   struct Int : Term {
@@ -188,6 +190,8 @@ namespace AST {
 
 namespace Compiler {
   int compile(const std::string& input_file, const std::string& output_file);
+  const std::string& get_rinha_filename();
+  void set_ast_file(AST::File* file);
 
   class IRGenerator {
   private:
