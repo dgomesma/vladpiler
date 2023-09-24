@@ -177,19 +177,17 @@ namespace AST {
 }
 
 namespace Compiler {
-  using Descriptor = llvm::Value;
-  using SymbolTable = std::map<std::string, Descriptor*>;
 
   // Keeps track of scoped symbols
   class SymbolTableStack {
     struct Identifier {
-      const bool isFn;
-      const std::string name;
-      const llvm::Value* ret;
-      const std::vector<const llvm::Value*> args;
+      bool isFn;
+      std::string name;
+      llvm::Value* ret;
+      std::vector<llvm::Value*> args;
 
-      Identifier(const std::string& name);  // Creates a variable
-      Identifier(const std::string& name, llvm::Value* ret, std::initializer_list<const llvm::Value*> args); // Creates a function
+      Identifier(std::string& name);  // Creates a variable
+      Identifier(std::string& name, llvm::Value* ret, std::initializer_list<llvm::Value*> args); // Creates a function
 
       bool operator==(const Identifier& other);
     };  
@@ -200,13 +198,13 @@ namespace Compiler {
       std::size_t operator()(const Identifier& identifier);
     };
 
-    std::vector<SymbolTable> symbol_tables;
+    std::vector<std::map<Identifier, llvm::Value*>> symbol_tables;
 
   public:
     SymbolTableStack();
-    Descriptor* getDescriptor(const std::string& symbol) const;
-    Descriptor* getDescriptorInCurScope(const std::string& symbol) const;
-    void insertDescriptor(const std::string& symbol, Descriptor *descriptor);
+    llvm::Value* getDescriptor(const std::string& symbol) const;
+    llvm::Value* getDescriptorInCurScope(const std::string& symbol) const;
+    void insertDescriptor(const std::string& symbol, Identifier* descriptor);
     void pushScope();
     void popScope();
   };

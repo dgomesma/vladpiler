@@ -85,11 +85,11 @@ namespace AST{
 
 namespace Compiler {
 
-  SymbolTableStack::Identifier::Identifier(const std::string& _name):
+  SymbolTableStack::Identifier::Identifier(std::string& _name):
     isFn(false),
     name(_name) {}
   
-  SymbolTableStack::Identifier::Identifier(const std::string& _name, llvm::Value* _ret, std::initializer_list<const llvm::Value*> _args) :
+  SymbolTableStack::Identifier::Identifier(std::string& _name, llvm::Value* _ret, std::initializer_list<llvm::Value*> _args) :
     isFn(true),
     name(_name),
     ret(_ret),
@@ -112,20 +112,26 @@ namespace Compiler {
   }
 
   std::size_t SymbolTableStack::IdentifierHasher::operator()(const Identifier& id) {
-    return id.isFn ? std::hash<std::string>(id.name) : 0; 
-  }
+    std::size_t hash = std::hash<std::string>()(id.name);
+    if (!id.isFn) return hash;
+    hash ^= std::hash<llvm::Value*>()(id.ret);
+    for (llvm::Value* arg : id.args) {
+      hash ^= std::hash<llvm::Value*>()(arg);
+    }
+    return hash;
+ }
 
-  Descriptor* SymbolTableStack::getDescriptor(const std::string& symbol) const {
-    for (const SymbolTable& table : symbol_tables) {
-      SymbolTable::const_iterator descriptor = table.find(symbol);
+  llvm::Value* SymbolTableStack::getDescriptor(const std::string& symbol) const {
+    for (const std::map<Identifier, llvm::Value*>& table : symbol_tables) {
+      std::map<Identifier, llvm::Value*>::const_iterator descriptor = table.find(symbol);
       if (descriptor != table.end()) return descriptor->second;
     }
     return nullptr;
   }
 
-  Descriptor* SymbolTableStack::getDescriptorInCurScope(const std::string& symbol) const {
+  llvm::Value* SymbolTableStack::getDescriptorInCurScope(const std::string& symbol) const {
     const SymbolTable& cur_scope = symbol_tables.front();
-    SymbolTable::const_iterator descriptor = cur_scope.find(symbol);
+    std::map<Identifier, llvm::Value*>::const_iterator descriptor = cur_scope.find(symbol);
     if (descriptor != cur_scope.end()) return descriptor->second;
     return nullptr;
   }
