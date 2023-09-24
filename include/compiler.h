@@ -186,8 +186,9 @@ namespace Compiler {
       llvm::Value* ret;
       std::vector<llvm::Value*> args;
 
-      Identifier(std::string& name);  // Creates a variable
-      Identifier(std::string& name, llvm::Value* ret, std::initializer_list<llvm::Value*> args); // Creates a function
+      Identifier(const std::string& name);  // Creates a variable
+      Identifier(const std::string& name, llvm::Value* ret, std::vector<llvm::Value*> args); // Creates a function
+      Identifier(const std::string& name, llvm::Value* ret, std::initializer_list<llvm::Value*> args); // Creates a function
 
       bool operator==(const Identifier& other);
     };  
@@ -199,12 +200,15 @@ namespace Compiler {
     };
 
     std::vector<std::map<Identifier, llvm::Value*>> symbol_tables;
-
+    llvm::Value* getValue(Identifier id) const;
+    void insertValue(const Identifier& id, llvm::Value* value);
   public:
     SymbolTableStack();
-    llvm::Value* getDescriptor(const std::string& symbol) const;
-    llvm::Value* getDescriptorInCurScope(const std::string& symbol) const;
-    void insertDescriptor(const std::string& symbol, Identifier* descriptor);
+    // Get functions may return nullptr if a corresponding value is not found
+    llvm::Value* getVariable(const std::string& symbol) const;
+    llvm::Value* getFunction(const std::string& symbol, llvm::Value* ret, const std::vector<llvm::Value*>& args) const;
+    void insertVariable(const std::string& name, llvm::Value* value);
+    void insertFunction(const std::string& name, llvm::Value* ret, const std::vector<llvm::Value*>& args, llvm::Value* value);
     void pushScope();
     void popScope();
   };

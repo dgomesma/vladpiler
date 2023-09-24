@@ -85,11 +85,17 @@ namespace AST{
 
 namespace Compiler {
 
-  SymbolTableStack::Identifier::Identifier(std::string& _name):
+  SymbolTableStack::Identifier::Identifier(const std::string& _name):
     isFn(false),
     name(_name) {}
   
-  SymbolTableStack::Identifier::Identifier(std::string& _name, llvm::Value* _ret, std::initializer_list<llvm::Value*> _args) :
+  SymbolTableStack::Identifier::Identifier(const std::string& _name, llvm::Value* _ret, std::initializer_list<llvm::Value*> _args) :
+    isFn(true),
+    name(_name),
+    ret(_ret),
+    args(_args) {}
+
+  SymbolTableStack::Identifier::Identifier(const std::string& _name, llvm::Value* _ret, std::vector<llvm::Value*> _args) :
     isFn(true),
     name(_name),
     ret(_ret),
@@ -121,25 +127,39 @@ namespace Compiler {
     return hash;
  }
 
-  llvm::Value* SymbolTableStack::getDescriptor(const std::string& symbol) const {
-    for (const std::map<Identifier, llvm::Value*>& table : symbol_tables) {
-      std::map<Identifier, llvm::Value*>::const_iterator descriptor = table.find(symbol);
-      if (descriptor != table.end()) return descriptor->second;
+  llvm::Value* SymbolTableStack::getValue(Identifier id) const {
+    for (auto it = symbol_tables.crbegin(); it != symbol_tables.crend(); it++) {
+      std::map<Identifier, llvm::Value*>::const_iterator descriptor = it->find(id);
+      if (descriptor != it->end()) return descriptor->second;
     }
     return nullptr;
   }
 
-  llvm::Value* SymbolTableStack::getDescriptorInCurScope(const std::string& symbol) const {
-    const SymbolTable& cur_scope = symbol_tables.front();
-    std::map<Identifier, llvm::Value*>::const_iterator descriptor = cur_scope.find(symbol);
-    if (descriptor != cur_scope.end()) return descriptor->second;
-    return nullptr;
+  llvm::Value* SymbolTableStack::getVariable(const std::string& name) const {
+    Identifier id(name);
+    return getValue(id);
+  }
+  
+  llvm::Value* SymbolTableStack::getFunction(const std::string& name, llvm::Value* ret, const std::vector<llvm::Value*>& args) const {
+    Identifier id(name, ret, args);
+    return getValue(id);
   }
 
-  void SymbolTableStack::insertDescriptor(const std::string& symbol, Descriptor* descriptor) {
-    SymbolTable& cur_scope = symbol_tables.front();
-    cur_scope[symbol] = descriptor;
+  void SymbolTableStack::insertValue(const Identifier& id, llvm::Value* value) {
+    assert(value);
+    std::map<Identifier, llvm::Value*>& cur_scope = symbol_tables.front();
+    cur_scope[id] = value;
+  };
+ 
+  void SymbolTableStack::insertVariable(const std::string& name, llvm::Value* value) {
+    Identifier id(name);
+    insertValue(id, value);
   }
+
+  void SymbolTableStack::insertFunction(const std::string& name, llvm::Value* ret, const std::vector<llvm::Value*>& args, llvm::Value* value) {
+    Identifier id(name, ret, args);
+    insertValue(id, value);
+  };
 
   void SymbolTableStack::pushScope() {
     symbol_tables.emplace_back();
