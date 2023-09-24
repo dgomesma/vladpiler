@@ -89,20 +89,20 @@ namespace Compiler {
     isFn(false),
     name(_name) {}
   
-  SymbolTableStack::Identifier::Identifier(const std::string& _name, llvm::Value* _ret, std::initializer_list<llvm::Value*> _args) :
+  SymbolTableStack::Identifier::Identifier(const std::string& _name, llvm::Type* _ret, std::initializer_list<llvm::Type*> _args) :
     isFn(true),
     name(_name),
     ret(_ret),
     args(_args) {}
 
-  SymbolTableStack::Identifier::Identifier(const std::string& _name, llvm::Value* _ret, std::vector<llvm::Value*> _args) :
+  SymbolTableStack::Identifier::Identifier(const std::string& _name, llvm::Type* _ret, std::vector<llvm::Type*> _args) :
     isFn(true),
     name(_name),
     ret(_ret),
     args(_args) {}
      
   SymbolTableStack::SymbolTableStack() {
-    pushScope();
+    pushScope();  // Global Data
   }
 
   bool SymbolTableStack::Identifier::operator==(const Identifier& other) const {
@@ -120,9 +120,9 @@ namespace Compiler {
   std::size_t SymbolTableStack::IdentifierHasher::operator()(const Identifier& id) const {
     std::size_t hash = std::hash<std::string>()(id.name);
     if (!id.isFn) return hash;
-    hash ^= std::hash<llvm::Value*>()(id.ret);
-    for (llvm::Value* arg : id.args) {
-      hash ^= std::hash<llvm::Value*>()(arg);
+    hash ^= std::hash<llvm::Type*>()(id.ret);
+    for (llvm::Type* arg : id.args) {
+      hash ^= std::hash<llvm::Type*>()(arg);
     }
     return hash;
  }
@@ -140,9 +140,9 @@ namespace Compiler {
     return getValue(id);
   }
   
-  llvm::Value* SymbolTableStack::getFunction(const std::string& name, llvm::Value* ret, const std::vector<llvm::Value*>& args) const {
+  llvm::Function* SymbolTableStack::getFunction(const std::string& name, llvm::Type* ret, const std::vector<llvm::Type*>& args) const {
     Identifier id(name, ret, args);
-    return getValue(id);
+    return reinterpret_cast<llvm::Function*>(getValue(id));
   }
 
   void SymbolTableStack::insertValue(const Identifier& id, llvm::Value* value) {
@@ -156,10 +156,26 @@ namespace Compiler {
     insertValue(id, value);
   }
 
-  void SymbolTableStack::insertFunction(const std::string& name, llvm::Value* ret, const std::vector<llvm::Value*>& args, llvm::Value* value) {
+  void SymbolTableStack::insertFunction(const std::string& name, llvm::Type* ret, const std::vector<llvm::Type*>& args, llvm::Function* value) {
     Identifier id(name, ret, args);
     insertValue(id, value);
   };
+
+   void SymbolTableStack::insertGlobalValue(const Identifier& id, llvm::Value* value) {
+    assert(value);
+    SymbolTable& cur_scope = symbol_tables.front();
+    cur_scope[id] = value;
+  };
+ 
+  void SymbolTableStack::insertGlobalVariable(const std::string& name, llvm::Value* value) {
+    Identifier id(name);
+    insertGlobalValue(id, value);
+  }
+
+  void SymbolTableStack::insertGlobalFunction(const std::string& name, llvm::Type* ret, const std::vector<llvm::Type*>& args, llvm::Function* value) {
+    Identifier id(name, ret, args);
+    insertGlobalValue(id, value);
+  }; 
 
   void SymbolTableStack::pushScope() {
     symbol_tables.emplace_back();
@@ -206,6 +222,9 @@ namespace Compiler {
     llvm::Function* fn = llvm::Function::Create(fn_type, llvm::Function::ExternalLinkage, name, module);
     llvm::BasicBlock* fn_entry = llvm::BasicBlock::Create(context, "entry", fn);
     builder.SetInsertPoint(fn_entry);
+    
+    symtbl_stack.insertFunction(name, ret, args, fn);
+    symtbl_stack.pushScope();
     return fn;
   }
 
@@ -215,8 +234,12 @@ namespace Compiler {
   };  
 
   llvm::Function* RinhaCompiler::declareExternFunction(llvm::Type* ret, std::initializer_list<llvm::Type*>&& args, const std::string& name) {
+    // Not found in symtbl. Will create declare extern function
     llvm::IRBuilder<>::InsertPoint previous_point= builder.saveIP();
-    llvm::Function* extern_fn = createFunction(ret, args, name);
+    llvm::FunctionType* fn_type = llvm::FunctionType::get(ret, args, false);
+    llvm::Function* extern_fn = llvm::Function::Create(fn_type, llvm::Function::ExternalLinkage, name, module);
+    symtbl_stack.insertGlobalFunction(name, ret, args, extern_fn);
+    
     builder.restoreIP(previous_point);
     return extern_fn;
   };

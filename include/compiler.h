@@ -183,12 +183,12 @@ namespace Compiler {
     struct Identifier {
       bool isFn;
       std::string name;
-      llvm::Value* ret;
-      std::vector<llvm::Value*> args;
+      llvm::Type* ret;
+      std::vector<llvm::Type*> args;
 
       Identifier(const std::string& name);  // Creates a variable
-      Identifier(const std::string& name, llvm::Value* ret, std::vector<llvm::Value*> args); // Creates a function
-      Identifier(const std::string& name, llvm::Value* ret, std::initializer_list<llvm::Value*> args); // Creates a function
+      Identifier(const std::string& name, llvm::Type* ret, std::vector<llvm::Type*> args); // Creates a function
+      Identifier(const std::string& name, llvm::Type* ret, std::initializer_list<llvm::Type*> args); // Creates a function
 
       bool operator==(const Identifier& other) const;
     };  
@@ -204,13 +204,16 @@ namespace Compiler {
     std::vector<SymbolTable> symbol_tables;
     llvm::Value* getValue(Identifier id) const;
     void insertValue(const Identifier& id, llvm::Value* value);
+    void insertGlobalValue(const Identifier& id, llvm::Value* value);
   public:
     SymbolTableStack();
     // Get functions may return nullptr if a corresponding value is not found
     llvm::Value* getVariable(const std::string& symbol) const;
-    llvm::Value* getFunction(const std::string& symbol, llvm::Value* ret, const std::vector<llvm::Value*>& args) const;
+    llvm::Function* getFunction(const std::string& symbol, llvm::Type* ret, const std::vector<llvm::Type*>& args) const;
     void insertVariable(const std::string& name, llvm::Value* value);
-    void insertFunction(const std::string& name, llvm::Value* ret, const std::vector<llvm::Value*>& args, llvm::Value* value);
+    void insertGlobalVariable(const std::string& name, llvm::Value* value);
+    void insertFunction(const std::string& name, llvm::Type* ret, const std::vector<llvm::Type*>& args, llvm::Function* value);
+    void insertGlobalFunction(const std::string& name, llvm::Type* ret, const std::vector<llvm::Type*>& args, llvm::Function* value);
     void pushScope();
     void popScope();
   };
