@@ -138,6 +138,8 @@ namespace AST {
     std::unique_ptr<Term> arg;
 
     Print(Term* _arg);
+
+    llvm::Value* getVal() override;
   };
 
   struct First : Term {
@@ -257,12 +259,17 @@ namespace Compiler {
     llvm::Function* createFunction(llvm::Type* ret, const std::vector<llvm::Type*>& args, const std::string& name);
 
     // Declare an extern function at the beginning of the module
-    llvm::Function* declareExternFunction(llvm::Type* ret, std::initializer_list<llvm::Type*>&& args, const std::string& name);
+    llvm::Function* declareExternFunction(llvm::Type* ret, const std::vector<llvm::Type*>& args, const std::string& name);
 
     llvm::Value* createBool(bool value);
     llvm::Value* createInt(int32_t value);
     llvm::Value* createStr(const std::string& str);
     llvm::Value* createTuple(llvm::Value* value1, llvm::Value* value2);
+    void createVoidReturn();
+    void createReturn(llvm::Value* val);
+    void createReturn(uint32_t val);
+
+    llvm::Value* print(llvm::Value*);
   };
 
 }

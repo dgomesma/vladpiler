@@ -69,7 +69,7 @@ int main(int argc, char* argv[]) {
       Lexer::tokens_scanner(args.filename);
       break;
     case program_t::COMPILER:
-      Compiler::compile(args.filename, "out");
+      Compiler::compile(args.filename, "out.ll");
       break;
     default:
       break;

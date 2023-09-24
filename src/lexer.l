@@ -26,9 +26,9 @@ escaped_char	\\[nrtvfab\\\'\"]
 
   // Literal Types ------------------------------------------//
 char_lit	\'({char_lit_chars}|{escaped_char})\'
-dec_lit		({decimal_digit})+
-hex_lit		0(x|X)({hex_digit})+
-bin_lit		0(b|B)({bin_digit})+
+dec_lit		-?({decimal_digit})+
+hex_lit		-?(x|X)({hex_digit})+
+bin_lit		-?(b|B)({bin_digit})+
 int_lit		({dec_lit}|{hex_lit}|{bin_lit})
 string_lit	\"({char}|{escaped_char})*\"
 
