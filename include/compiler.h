@@ -190,16 +190,18 @@ namespace Compiler {
       Identifier(const std::string& name, llvm::Value* ret, std::vector<llvm::Value*> args); // Creates a function
       Identifier(const std::string& name, llvm::Value* ret, std::initializer_list<llvm::Value*> args); // Creates a function
 
-      bool operator==(const Identifier& other);
+      bool operator==(const Identifier& other) const;
     };  
 
     // Using aliases because there types might be subject to change
 
     struct IdentifierHasher{
-      std::size_t operator()(const Identifier& identifier);
+      std::size_t operator()(const Identifier& identifier) const;
     };
 
-    std::vector<std::map<Identifier, llvm::Value*>> symbol_tables;
+    using SymbolTable = std::unordered_map<Identifier, llvm::Value*, IdentifierHasher>;
+
+    std::vector<SymbolTable> symbol_tables;
     llvm::Value* getValue(Identifier id) const;
     void insertValue(const Identifier& id, llvm::Value* value);
   public:
