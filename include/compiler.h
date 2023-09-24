@@ -217,10 +217,10 @@ namespace Compiler {
   const std::string& get_rinha_filename();
   void set_ast_file(AST::File* file);
 
-  class IRGenerator {
+  class RinhaCompiler {
   private:
     
-    static IRGenerator* singleton;
+    static RinhaCompiler* singleton;
 
     llvm::LLVMContext context;
     llvm::IRBuilder<> builder;
@@ -232,16 +232,16 @@ namespace Compiler {
 
     llvm::IRBuilder<>::InsertPoint externInsertPoint;
 
-    IRGenerator(const std::string& input_file);
+    RinhaCompiler(const std::string& input_file);
   public:
     enum class insert_point_loc_t {
       EXTERN,
       MAIN
     };
 
-    static IRGenerator& initialize(const std::string& input_file);
+    static RinhaCompiler& initialize(const std::string& input_file);
     static bool isInitialized();
-    static IRGenerator& getSingleton();
+    static RinhaCompiler& getSingleton();
 
     // Prints code to the given output file
     void printCode(const std::string& out_file);
