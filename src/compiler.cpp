@@ -105,7 +105,7 @@ namespace Compiler {
     pushScope();
   }
 
-  bool SymbolTableStack::Identifier::operator==(const Identifier& other) {
+  bool SymbolTableStack::Identifier::operator==(const Identifier& other) const {
     if (name != other.name) return false;
     if (!isFn && !other.isFn) return true;
     else if (isFn == other.isFn) {
@@ -117,7 +117,7 @@ namespace Compiler {
     } else return false;
   }
 
-  std::size_t SymbolTableStack::IdentifierHasher::operator()(const Identifier& id) {
+  std::size_t SymbolTableStack::IdentifierHasher::operator()(const Identifier& id) const {
     std::size_t hash = std::hash<std::string>()(id.name);
     if (!id.isFn) return hash;
     hash ^= std::hash<llvm::Value*>()(id.ret);
@@ -129,7 +129,7 @@ namespace Compiler {
 
   llvm::Value* SymbolTableStack::getValue(Identifier id) const {
     for (auto it = symbol_tables.crbegin(); it != symbol_tables.crend(); it++) {
-      std::map<Identifier, llvm::Value*>::const_iterator descriptor = it->find(id);
+      SymbolTable::const_iterator descriptor = it->find(id);
       if (descriptor != it->end()) return descriptor->second;
     }
     return nullptr;
@@ -147,7 +147,7 @@ namespace Compiler {
 
   void SymbolTableStack::insertValue(const Identifier& id, llvm::Value* value) {
     assert(value);
-    std::map<Identifier, llvm::Value*>& cur_scope = symbol_tables.front();
+    SymbolTable& cur_scope = symbol_tables.back();
     cur_scope[id] = value;
   };
  
