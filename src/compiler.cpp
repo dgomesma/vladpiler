@@ -13,6 +13,8 @@ namespace AST{
 
   void File::compile() {
     term->getVal();
+    uint32_t ret_val = 0;
+    Compiler::RinhaCompiler::getSingleton().createReturn(ret_val);
   };
 
   Int::Int(int64_t _value) : value(_value) {}
@@ -56,6 +58,11 @@ namespace AST{
 
   Print::Print(Term* _arg) :
     arg(_arg) {}
+
+  llvm::Value* Print::getVal() {
+    Compiler::RinhaCompiler& compiler = Compiler::RinhaCompiler::getSingleton();
+    return compiler.print(arg->getVal());
+  }
 
   First::First(Term* _arg) :
     arg(_arg) {}
@@ -233,9 +240,9 @@ namespace Compiler {
     return createFunction(type, args, name);
   };  
 
-  llvm::Function* RinhaCompiler::declareExternFunction(llvm::Type* ret, std::initializer_list<llvm::Type*>&& args, const std::string& name) {
-    // Not found in symtbl. Will create declare extern function
+  llvm::Function* RinhaCompiler::declareExternFunction(llvm::Type* ret, const std::vector<llvm::Type*>& args, const std::string& name) {
     llvm::IRBuilder<>::InsertPoint previous_point= builder.saveIP();
+    builder.restoreIP(externInsertPoint);
     llvm::FunctionType* fn_type = llvm::FunctionType::get(ret, args, false);
     llvm::Function* extern_fn = llvm::Function::Create(fn_type, llvm::Function::ExternalLinkage, name, module);
     symtbl_stack.insertGlobalFunction(name, ret, args, extern_fn);
@@ -253,8 +260,7 @@ namespace Compiler {
   }
 
   llvm::Value* RinhaCompiler::createStr(const std::string& str) {
-    llvm::GlobalVariable* str_var = builder.CreateGlobalString(str, "", 0, &module);
-    return builder.CreatePointerCast(str_var, builder.getInt8PtrTy());
+    return builder.CreateGlobalString(str, "", 0, &module);
   }
 
   llvm::Value* RinhaCompiler::createTuple(llvm::Value* first, llvm::Value* second) {
@@ -272,6 +278,52 @@ namespace Compiler {
     builder.CreateStore(first, first_ptr);
     builder.CreateStore(second, second_ptr);
     return tuple;
+  }
+
+  void RinhaCompiler::createVoidReturn() {
+    builder.CreateRetVoid();    
+  }
+
+  void RinhaCompiler::createReturn(llvm::Value* val) {
+    builder.CreateRet(val);
+  }
+
+  void RinhaCompiler::createReturn(uint32_t val) {
+    builder.CreateRet(builder.getInt32(val));
+  }
+
+  llvm::Value* RinhaCompiler::print(llvm::Value* val) {
+    std::string print_name;
+
+    llvm::Type* type = val->getType();
+    if (type->isIntegerTy(1)) {
+      print_name = "print_bool";
+      type = llvm::Type::getInt8Ty(context);
+      val = builder.CreateZExt(val, type);
+    } else if (type->isIntegerTy()) {
+      print_name = "print_num";
+    } else if (type->isIntOrPtrTy()) {
+      print_name = "print_str";
+    } else if (type->isStructTy()) {
+      print_name = "print_tuple";
+      throw std::runtime_error("Tuple printing not supported yet. Must be implemented.");
+    } else if (type->isFunctionTy()) {
+      print_name = "print_closure";
+      type = llvm::Type::getVoidTy(context);
+    } else {
+      std::cerr << "Unknown type in print statement. Aborting." << std::endl;
+      abort();
+    }
+
+    std::vector<llvm::Type*> args = {type};
+    llvm::Type* void_type = llvm::Type::getVoidTy(context);
+    llvm::Function* print_fn = symtbl_stack.getFunction(print_name, void_type, args); 
+    if (!print_fn) {
+      print_fn = declareExternFunction(void_type, args, print_name);
+    }
+
+    builder.CreateCall(print_fn, {val});
+    return val;
   }
 
   static std::string __rinha_file = "rinha_default_filename";

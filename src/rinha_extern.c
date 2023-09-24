@@ -1,22 +1,39 @@
 #include <stdio.h>
+#include <stdint.h>
 
-void print_bool(char _bool) {
-  if (_bool) {
-      printf("true\n");
-  } else {
-      printf("false\n");
-    }
+void _print_bool(uint8_t val) {
+  if (val) printf("true");
+  else printf("false");
 }
 
-void print_int(int i) {
-  printf("%d\n", i);  
+void print_bool(uint8_t val) {
+  _print_bool(val);
+  printf("\n");
+}
+
+void _print_num(int32_t val) {
+  printf("%d", val);
+}
+
+void print_num(int32_t val) {
+  _print_num(val);
+  printf("\n");
+}
+
+void _print_str(char* str) {
+  printf("%s", str);
 }
 
 void print_str(char* str) {
-  printf("%s\n", str);
+  _print_str(str);
+  printf("\n");
+}
+
+void _print_closure(void) {
+  printf("<#closure>");
 }
 
 void print_closure(void) {
-  printf("<#closure>\n");
+  _print_closure();
+  printf("\n");
 }
-

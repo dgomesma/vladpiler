@@ -13,6 +13,7 @@ namespace Lexer {
 
 	void get_str(std::string& buffer) {
 		buffer.assign(yytext, yyleng);
+		buffer = buffer.substr(1, buffer.length() - 2);
 	}
 
 	void tokens_scanner(const std::string& filename) {
