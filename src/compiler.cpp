@@ -18,14 +18,14 @@ namespace AST{
   Int::Int(int64_t _value) : value(_value) {}
 
   llvm::Value* Int::getVal() {
-    Compiler::IRGenerator& generator = Compiler::IRGenerator::getSingleton();
+    Compiler::RinhaCompiler& generator = Compiler::RinhaCompiler::getSingleton();
     return generator.createInt(value);
   }
 
   Str::Str(std::string* _str) : str(_str) {}
 
   llvm::Value* Str::getVal() {
-    Compiler::IRGenerator& generator = Compiler::IRGenerator::getSingleton();
+    Compiler::RinhaCompiler& generator = Compiler::RinhaCompiler::getSingleton();
     return generator.createStr(*str);
   }
 
@@ -67,7 +67,7 @@ namespace AST{
     val(_val) {};
 
   llvm::Value* Bool::getVal() {
-    Compiler::IRGenerator& generator = Compiler::IRGenerator::getSingleton();
+    Compiler::RinhaCompiler& generator = Compiler::RinhaCompiler::getSingleton();
     return generator.createBool(val); 
   }
 
@@ -75,7 +75,7 @@ namespace AST{
     first(_first), second(_second) {}
 
   llvm::Value* Tuple::getVal() {
-    Compiler::IRGenerator& generator = Compiler::IRGenerator::getSingleton();
+    Compiler::RinhaCompiler& generator = Compiler::RinhaCompiler::getSingleton();
     return generator.createTuple(first->getVal(), second->getVal());
   }
 
@@ -171,37 +171,37 @@ namespace Compiler {
   
   std::unique_ptr<AST::File> ast_root;
 
-  IRGenerator* IRGenerator::singleton = nullptr;
+  RinhaCompiler* RinhaCompiler::singleton = nullptr;
 
-  IRGenerator::IRGenerator(const std::string& input_file) :
+  RinhaCompiler::RinhaCompiler(const std::string& input_file) :
     builder(context),
     module(input_file, context),
     filename(input_file) {};
 
-  bool IRGenerator::isInitialized() { return singleton != nullptr; }
+  bool RinhaCompiler::isInitialized() { return singleton != nullptr; }
 
-  IRGenerator& IRGenerator::initialize(const std::string& input_file) {  
+  RinhaCompiler& RinhaCompiler::initialize(const std::string& input_file) {  
     if (isInitialized()) throw std::runtime_error("IRGenerator is already initialized.");
-    singleton = new IRGenerator(input_file);
-    IRGenerator& generator = *singleton;
+    singleton = new RinhaCompiler(input_file);
+    RinhaCompiler& generator = *singleton;
     generator.externInsertPoint = generator.builder.saveIP();
     generator.createFunction(llvm::Type::getInt32Ty(generator.context), {}, "main");
     
     return *singleton;
   };
 
-  IRGenerator& IRGenerator::getSingleton() {
+  RinhaCompiler& RinhaCompiler::getSingleton() {
     if (!isInitialized()) throw std::runtime_error("IRGenerator has not been initialized.");
     return *singleton;
   }
 
-  void IRGenerator::printCode(const std::string& out_file) {
+  void RinhaCompiler::printCode(const std::string& out_file) {
     std::error_code fd_ostream_ec;
     llvm::raw_fd_ostream ostream(out_file, fd_ostream_ec);
     module.print(ostream, nullptr);
   };
 
-  llvm::Function* IRGenerator::createFunction(llvm::Type* ret, const std::vector<llvm::Type*>& args, const std::string& name) {
+  llvm::Function* RinhaCompiler::createFunction(llvm::Type* ret, const std::vector<llvm::Type*>& args, const std::string& name) {
     llvm::FunctionType* fn_type = llvm::FunctionType::get(ret, args, false);
     llvm::Function* fn = llvm::Function::Create(fn_type, llvm::Function::ExternalLinkage, name, module);
     llvm::BasicBlock* fn_entry = llvm::BasicBlock::Create(context, "entry", fn);
@@ -209,32 +209,32 @@ namespace Compiler {
     return fn;
   }
 
-  llvm::Function* IRGenerator::createFunction(llvm::Type* type, std::initializer_list<llvm::Type*> _args, const std::string& name) {
+  llvm::Function* RinhaCompiler::createFunction(llvm::Type* type, std::initializer_list<llvm::Type*> _args, const std::string& name) {
     const std::vector<llvm::Type*> args(_args);
     return createFunction(type, args, name);
   };  
 
-  llvm::Function* IRGenerator::declareExternFunction(llvm::Type* ret, std::initializer_list<llvm::Type*>&& args, const std::string& name) {
+  llvm::Function* RinhaCompiler::declareExternFunction(llvm::Type* ret, std::initializer_list<llvm::Type*>&& args, const std::string& name) {
     llvm::IRBuilder<>::InsertPoint previous_point= builder.saveIP();
     llvm::Function* extern_fn = createFunction(ret, args, name);
     builder.restoreIP(previous_point);
     return extern_fn;
   };
 
-  llvm::Value* IRGenerator::createBool(bool value) {
+  llvm::Value* RinhaCompiler::createBool(bool value) {
     return builder.getInt1(value); 
   }
 
-  llvm::Value* IRGenerator::createInt(int32_t value) {
+  llvm::Value* RinhaCompiler::createInt(int32_t value) {
     return builder.getInt32(value);
   }
 
-  llvm::Value* IRGenerator::createStr(const std::string& str) {
+  llvm::Value* RinhaCompiler::createStr(const std::string& str) {
     llvm::GlobalVariable* str_var = builder.CreateGlobalString(str, "", 0, &module);
     return builder.CreatePointerCast(str_var, builder.getInt8PtrTy());
   }
 
-  llvm::Value* IRGenerator::createTuple(llvm::Value* first, llvm::Value* second) {
+  llvm::Value* RinhaCompiler::createTuple(llvm::Value* first, llvm::Value* second) {
     llvm::Type* first_type = first->getType();
     llvm::Type* second_type = second->getType();
 
@@ -269,7 +269,7 @@ namespace Compiler {
 
   int compile(const std::string& input_file, const std::string& output_file) {
     set_rinha_file(input_file);
-    IRGenerator& generator = IRGenerator::initialize(input_file);
+    RinhaCompiler& generator = RinhaCompiler::initialize(input_file);
     
     int ret = yyparse();
     if (ret != 0) {
