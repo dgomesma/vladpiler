@@ -78,6 +78,11 @@ namespace AST{
   If::If(Term* _condition, Term* _then, Term* _orElse) :
     condition(_condition), then(_then), orElse(_orElse) {}
 
+  llvm::Value* If::getVal() {
+    Compiler::RinhaCompiler& compiler = Compiler::RinhaCompiler::getSingleton();
+    return compiler.createIfElse(condition.get(), then.get(), orElse.get());
+  }
+
   Print::Print(Term* _arg) :
     arg(_arg) {}
 
@@ -262,8 +267,8 @@ namespace Compiler {
     llvm::BasicBlock* fn_entry = llvm::BasicBlock::Create(context, "entry", fn);
     builder.SetInsertPoint(fn_entry);
     
-    symtbl_stack.insertFunction(name, ret, args, fn);
     symtbl_stack.pushScope();
+        
     return fn;
   }
 
@@ -480,15 +485,52 @@ namespace Compiler {
 
   void RinhaCompiler::createVoidReturn() {
     builder.CreateRetVoid();    
+    symtbl_stack.popScope();
   }
 
   void RinhaCompiler::createReturn(llvm::Value* val) {
     builder.CreateRet(val);
+    symtbl_stack.popScope();
   }
 
   void RinhaCompiler::createReturn(uint32_t val) {
     builder.CreateRet(builder.getInt32(val));
+    symtbl_stack.popScope();
   }
+
+  llvm::Value* RinhaCompiler::createIfElse(AST::Term* cond, AST::Term* then, AST::Term* orElse) {
+  	llvm::Function* current_fn = builder.GetInsertBlock()->getParent();
+    
+    llvm::BasicBlock* if_block = llvm::BasicBlock::Create(context, "if", current_fn);
+  	llvm::BasicBlock* then_block = llvm::BasicBlock::Create(context, "then", current_fn);
+  	llvm::BasicBlock* else_block = llvm::BasicBlock::Create(context, "or_else", current_fn);
+  	llvm::BasicBlock* merge_block = llvm::BasicBlock::Create(context, "merge", current_fn);
+
+    builder.CreateBr(if_block);
+    builder.SetInsertPoint(if_block);
+    llvm::Value* decision = cond->getVal();
+    assert(decision);
+
+    if (!isBool(decision)) return createUndefined();
+
+    builder.CreateCondBr(decision, then_block, else_block);
+
+    builder.SetInsertPoint(then_block);
+    llvm::Value* then_val = then->getVal();
+    builder.CreateBr(merge_block);
+    
+    builder.SetInsertPoint(else_block);
+    llvm::Value* else_val = orElse->getVal();
+    builder.CreateBr(merge_block);
+
+
+    builder.SetInsertPoint(merge_block);
+    llvm::PHINode* phi = builder.CreatePHI(then_val->getType(), 2, "if_phi");
+    phi->addIncoming(then_val, then_block);
+    phi->addIncoming(else_val, else_block);
+
+    return phi;
+   }
 
   llvm::Type* RinhaCompiler::getPtrType(llvm::Value* val) {
     llvm::Type* type = val->getType();
