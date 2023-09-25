@@ -8,6 +8,7 @@
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Verifier.h"
 #include "llvm/IR/IRBuilder.h"
+#include "llvm/Support/raw_ostream.h"
 
 namespace AST {
 
@@ -246,6 +247,10 @@ namespace Compiler {
     RinhaCompiler(const std::string& input_file);
     llvm::Value* createTupleDescriptor(llvm::Value* tuple);
     llvm::Value* createUndefined();
+
+    void printTuple(llvm::Value* tuple);
+    void _print(llvm::Value*);
+    llvm::Type* getPtrType(llvm::Value*);
   public:
     enum class insert_point_loc_t {
       EXTERN,
@@ -265,7 +270,7 @@ namespace Compiler {
     llvm::Function* createFunction(llvm::Type* ret, const std::vector<llvm::Type*>& args, const std::string& name);
 
     // Declare an extern function at the beginning of the module
-    llvm::Function* declareExternFunction(llvm::Type* ret, const std::vector<llvm::Type*>& args, const std::string& name);
+    llvm::Function* getExternFunction(llvm::Type* ret, const std::vector<llvm::Type*>& args, const std::string& name);
 
     llvm::Value* createBool(bool value);
     llvm::Value* createInt(int32_t value);

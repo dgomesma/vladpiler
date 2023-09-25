@@ -2,6 +2,8 @@
 #include "lexer.h"
 #include "compiler.h"
 #include "parser.tab.h"
+#include "rinha_extern.h"
+#include <llvm/IR/Instructions.h>
 
 //==================================
 // Symbol Table
@@ -250,7 +252,10 @@ namespace Compiler {
     return createFunction(type, args, name);
   };  
 
-  llvm::Function* RinhaCompiler::declareExternFunction(llvm::Type* ret, const std::vector<llvm::Type*>& args, const std::string& name) {
+  llvm::Function* RinhaCompiler::getExternFunction(llvm::Type* ret, const std::vector<llvm::Type*>& args, const std::string& name) {
+    llvm::Function* print_fn = symtbl_stack.getFunction(name, ret, args);    
+    if (print_fn) return print_fn;
+
     llvm::IRBuilder<>::InsertPoint previous_point= builder.saveIP();
     builder.restoreIP(externInsertPoint);
     llvm::FunctionType* fn_type = llvm::FunctionType::get(ret, args, false);
@@ -307,58 +312,99 @@ namespace Compiler {
     builder.CreateRet(builder.getInt32(val));
   }
 
+  llvm::Type* RinhaCompiler::getPtrType(llvm::Value* val) {
+    llvm::Type* type = val->getType();
+    if (!type->isPointerTy()) return type;
+    if (!type->isOpaquePointerTy()) return type;
+    if (llvm::isa<llvm::AllocaInst>(val)) {
+      llvm::AllocaInst* alloca = llvm::dyn_cast<llvm::AllocaInst>(val);
+      return alloca->getAllocatedType();
+    }
+    else if (llvm::isa<llvm::GlobalVariable>(val)) {
+      llvm::GlobalVariable* global = llvm::dyn_cast<llvm::GlobalVariable>(val);
+      return global->getValueType();
+    } else if (llvm::isa<llvm::LoadInst>(val)) {
+      llvm::LoadInst* load = llvm::dyn_cast<llvm::LoadInst>(val);
+      return load->getType();
+    } else if (llvm::isa<llvm::GetElementPtrInst>(val)) {
+      llvm::GetElementPtrInst* gep = llvm::dyn_cast<llvm::GetElementPtrInst>(val);
+      return gep->getSourceElementType();
+    } else {
+      std::cerr << "Pointer type not recognized" << std::endl;
+      val->getType()->print(llvm::errs());
+      std::cerr << std::endl;
+      exit(1);
+    }
+  }
+
   llvm::Value* RinhaCompiler::getTupleFirst(llvm::Value* tuple) {
-    if (!llvm::isa<llvm::AllocaInst>(tuple)) return tuple;
-    llvm::AllocaInst* alloca = llvm::dyn_cast<llvm::AllocaInst>(tuple);
-    llvm::Type* alloc_type = alloca->getAllocatedType();
-    if (!alloc_type->isStructTy()) return tuple;
-    llvm::Value* first_element_ptr = builder.CreateStructGEP(alloc_type, alloca, 0);
+    llvm::Type* alloc_type = getPtrType(tuple);
+    llvm::Value* first_element_ptr = builder.CreateStructGEP(alloc_type, tuple, 0);
     return builder.CreateLoad(alloc_type->getStructElementType(0), first_element_ptr);
   }
 
   llvm::Value* RinhaCompiler::getTupleSecond(llvm::Value* tuple) {
-    if (!llvm::isa<llvm::AllocaInst>(tuple)) return createUndefined();
-    llvm::AllocaInst* alloca = llvm::dyn_cast<llvm::AllocaInst>(tuple);
-    llvm::Type* alloc_type = alloca->getAllocatedType();
-    if (!alloc_type->isStructTy()) return createUndefined();
-    if (alloc_type->getStructNumElements() < 2) return createUndefined();
-    llvm::Value* second_element_ptr = builder.CreateStructGEP(alloc_type, alloca, 1);
+    llvm::Type* alloc_type = getPtrType(tuple);
+    llvm::Value* second_element_ptr = builder.CreateStructGEP(alloc_type, tuple, 1);
     return builder.CreateLoad(alloc_type->getStructElementType(1), second_element_ptr);
   }
 
   llvm::Value* RinhaCompiler::print(llvm::Value* val) {
-    std::string print_name;
+    _print(val);    
+    llvm::Type* void_type = llvm::Type::getVoidTy(context);
+    llvm::Function* print_nl = getExternFunction(void_type, {}, "print_nl");
+    builder.CreateCall(print_nl);
+    return val;
+  }
 
+  void RinhaCompiler::_print(llvm::Value* val) {
+    std::string print_name = "print_undefined";
+    std::vector<llvm::Type*> args = {};
     llvm::Type* type = val->getType();
     if (type->isIntegerTy(1)) {
       print_name = "print_bool";
-      type = llvm::Type::getInt8Ty(context);
+      args = {llvm::Type::getInt8Ty(context)};
       val = builder.CreateZExt(val, type);
     } else if (type->isIntegerTy()) {
       print_name = "print_num";
-    } else if (type->isIntOrPtrTy()) {
-      print_name = "print_str";
-    } else if (type->isStructTy()) {
-      print_name = "print_tuple";
-      throw std::runtime_error("Tuple printing not supported yet. Must be implemented.");
+      args = {val->getType()};
+    } else if (type->isPointerTy()) {
+      llvm::Type* ptr_type = getPtrType(val);
+      if (ptr_type->isStructTy()) {
+        printTuple(val);
+        return;
+      } else if (ptr_type->isArrayTy() && ptr_type->getArrayElementType()->isIntegerTy(8)) {
+        print_name = "print_str";
+        args = {llvm::Type::getInt8PtrTy(context)};
+      } else if (ptr_type->isPointerTy()) {
+        // Yet to be handled
+      }
     } else if (type->isFunctionTy()) {
       print_name = "print_closure";
-      type = llvm::Type::getVoidTy(context);
     } else {
-      print_name = "print_undefined";
-      type = llvm::Type::getVoidTy(context);
-      abort();
+      std::cerr << "Uncaught type" << std::endl;
     }
 
-    std::vector<llvm::Type*> args = {type};
     llvm::Type* void_type = llvm::Type::getVoidTy(context);
-    llvm::Function* print_fn = symtbl_stack.getFunction(print_name, void_type, args); 
-    if (!print_fn) {
-      print_fn = declareExternFunction(void_type, args, print_name);
-    }
+    llvm::Function* print_fn = getExternFunction(void_type, args, print_name);
 
     builder.CreateCall(print_fn, {val});
-    return val;
+  }
+
+  // Assume tuple is well formatted
+  void RinhaCompiler::printTuple(llvm::Value* tuple_ptr) {
+    llvm::Type* void_type = llvm::Type::getVoidTy(context);
+    llvm::Function* print_lp = getExternFunction(void_type, {}, "print_lp");
+    llvm::Function* print_delim = getExternFunction(void_type, {}, "print_delim");
+    llvm::Function* print_rp = getExternFunction(void_type, {}, "print_rp");
+    
+    builder.CreateCall(print_lp);
+    llvm::Value* first = getTupleFirst(tuple_ptr);
+    _print(first);
+    builder.CreateCall(print_delim);
+    llvm::Value* second = getTupleSecond(tuple_ptr);
+    _print(second);
+    builder.CreateCall(print_rp);
   }
 
   static std::string __rinha_file = "rinha_default_filename";
