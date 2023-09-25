@@ -41,6 +41,26 @@ namespace AST{
   Binary::Binary(Term* _lhs, Term* _rhs, BinOp _binop) :
     lhs(_lhs), rhs(_rhs), binop(_binop) {}
 
+  llvm::Value* Binary::getVal() {
+    Compiler::RinhaCompiler& compiler = Compiler::RinhaCompiler::getSingleton(); 
+    switch (binop) {
+      case BinOp::PLUS:  return compiler.createAdd(lhs->getVal(), rhs->getVal());
+      case BinOp::MINUS: return compiler.createMinus(lhs->getVal(), rhs->getVal());
+      case BinOp::MULT:  return compiler.createMult(lhs->getVal(), rhs->getVal());
+      case BinOp::DIV:   return compiler.createDiv(lhs->getVal(), rhs->getVal());
+      case BinOp::MOD:   return compiler.createMod(lhs->getVal(), rhs->getVal());
+      case BinOp::EQ:    return compiler.createEq(lhs->getVal(), rhs->getVal());
+      case BinOp::NEQ:   return compiler.createNeq(lhs->getVal(), rhs->getVal());
+      case BinOp::GT:    return compiler.createGt(lhs->getVal(), rhs->getVal());
+      case BinOp::LT:    return compiler.createLt(lhs->getVal(), rhs->getVal());
+      case BinOp::GTE:   return compiler.createGte(lhs->getVal(), rhs->getVal());
+      case BinOp::LTE:   return compiler.createLte(lhs->getVal(), rhs->getVal());
+      case BinOp::AND:   return compiler.createAnd(lhs.get(), rhs.get());
+      case BinOp::OR:    return compiler.createOr(lhs.get(), rhs.get());
+      default:           return nullptr;
+    }
+  }
+
   Parameter::Parameter(std::string* id) :
     identifier(id) {}
 
@@ -100,7 +120,7 @@ namespace AST{
 
   Var::Var(std::string&& _name) :
     name(std::move(_name)) {};
-}
+  }
 
 namespace Compiler {
 
@@ -300,6 +320,134 @@ namespace Compiler {
     return tuple;
   }
 
+  
+  llvm::Value* RinhaCompiler::createAdd(llvm::Value* lhs, llvm::Value* rhs) {
+
+    if (is32Int(lhs) && is32Int(rhs)) {
+      return builder.CreateAdd(lhs, rhs, "add");
+    }
+
+    // What about string operations?
+
+    return createUndefined();
+  }
+
+  llvm::Value* RinhaCompiler::createMinus(llvm::Value* lhs, llvm::Value* rhs){
+
+    if (is32Int(lhs) && is32Int(rhs)) {
+      return builder.CreateSub(lhs, rhs, "sub");
+    }
+
+    return createUndefined();
+  }; 
+  llvm::Value* RinhaCompiler::createMult(llvm::Value* lhs, llvm::Value* rhs){
+
+    if (is32Int(lhs) && is32Int(rhs)) {
+      return builder.CreateMul(lhs, rhs, "mul");
+    }
+
+    return createUndefined();
+  };
+  llvm::Value* RinhaCompiler::createDiv(llvm::Value* lhs, llvm::Value* rhs){
+    
+    if (is32Int(lhs) && is32Int(rhs)) {
+      // Deal with div by zero
+      return builder.CreateSDiv(lhs, rhs, "div");
+    }
+
+    return createUndefined();
+  };
+  llvm::Value* RinhaCompiler::createMod(llvm::Value* lhs, llvm::Value* rhs){
+
+    if(is32Int(lhs) && is32Int(rhs)) {
+      return builder.CreateSRem(lhs, rhs);
+    }
+
+    return createUndefined();
+  };
+  llvm::Value* RinhaCompiler::createEq(llvm::Value* lhs, llvm::Value* rhs){
+
+    if (isInt(lhs) && isInt(rhs)) {
+      return builder.CreateICmpEQ(lhs, rhs, "eq");
+    }
+
+    return createUndefined();
+  };
+  llvm::Value* RinhaCompiler::createNeq(llvm::Value* lhs, llvm::Value* rhs){
+
+    if (isInt(lhs) && isInt(rhs)) {
+      return builder.CreateICmpNE(lhs, rhs);
+    }
+
+    return createUndefined();
+  };
+  llvm::Value* RinhaCompiler::createGt(llvm::Value* lhs, llvm::Value* rhs){
+
+    if (is32Int(lhs) && is32Int(rhs)) {
+      return builder.CreateICmpSGT(lhs, rhs, "gt");
+    }
+
+    return createUndefined();
+  };
+  llvm::Value* RinhaCompiler::createLt(llvm::Value* lhs, llvm::Value* rhs){
+
+    if (is32Int(lhs) && is32Int(rhs)) {
+      return builder.CreateICmpSLT(lhs, rhs, "lt");
+    }
+
+    return createUndefined();
+  };
+  llvm::Value* RinhaCompiler::createGte(llvm::Value* lhs, llvm::Value* rhs){
+
+    if (is32Int(lhs) && is32Int(rhs)) {
+      return builder.CreateICmpSGE(lhs, rhs, "gte"); 
+    }
+
+    return createUndefined();
+  };
+  llvm::Value* RinhaCompiler::createLte(llvm::Value* lhs, llvm::Value* rhs){
+
+    if (is32Int(lhs) && is32Int(rhs)) {
+      return builder.CreateICmpSLE(lhs, rhs, "lte");
+    }
+
+    return createUndefined();
+  };
+  llvm::Value* RinhaCompiler::createOr(AST::Term* value1, AST::Term* value2){
+
+    return createUndefined();
+  };
+
+  llvm::Value* RinhaCompiler::createAnd(AST::Term* lhs, AST::Term* rhs){
+    llvm::Function* current_fn = builder.GetInsertBlock()->getParent();
+    llvm::BasicBlock* and_block = llvm::BasicBlock::Create(context, "and", current_fn);
+    llvm::BasicBlock* true_block = llvm::BasicBlock::Create(context, "and_true", current_fn);
+    llvm::BasicBlock* merge_block = llvm::BasicBlock::Create(context, "and_false", current_fn);
+
+    builder.CreateBr(and_block);
+    builder.SetInsertPoint(and_block);
+
+    llvm::Value* lhs_val = lhs->getVal();
+    if (!isBool(lhs_val)) return createUndefined();
+
+    llvm::BasicBlock* current = builder.GetInsertBlock();
+    builder.CreateCondBr(lhs_val, true_block, merge_block);
+
+    builder.SetInsertPoint(true_block);
+    llvm::Value* rhs_val = rhs->getVal();
+    if (!isBool(rhs_val)) return createUndefined();
+
+    llvm::BasicBlock* current_and_true = builder.GetInsertBlock();
+    builder.CreateBr(merge_block);
+
+    builder.SetInsertPoint(merge_block);
+    llvm::PHINode *and_phi = builder.CreatePHI(lhs_val->getType(), 2, "and_phi");
+    and_phi->addIncoming(lhs_val, current);
+    and_phi->addIncoming(rhs_val, current_and_true);
+
+    return and_phi;
+  };
+
   llvm::Value* RinhaCompiler::createUndefined() {
     llvm::Value* zero = builder.getInt8(0);
     return builder.CreateIntToPtr(zero, llvm::Type::getInt8PtrTy(context));
@@ -396,8 +544,13 @@ namespace Compiler {
         print_name = "print_str";
         args = {llvm::Type::getInt8PtrTy(context)};
       } else if (ptr_type->isPointerTy()) {
-        printTuple(val);
-        return;
+        // Lots of pain in this part code
+        llvm::Type* nested_ptr_type = id_type_map[val->getName().str()];
+        if (nested_ptr_type->isStructTy()) { printTuple(val); return; }
+        else if (nested_ptr_type->isArrayTy() && nested_ptr_type->getArrayElementType()->isIntegerTy(8)) {
+          print_name = "print_str";
+          args = {llvm::Type::getInt8PtrTy(context)};
+        }
       }
     } else if (type->isFunctionTy()) {
       print_name = "print_closure";
@@ -409,6 +562,19 @@ namespace Compiler {
     llvm::Function* print_fn = getExternFunction(void_type, args, print_name);
 
     builder.CreateCall(print_fn, {val});
+  }
+
+  bool RinhaCompiler::is32Int(llvm::Value* val) {
+    return val->getType()->isIntegerTy(32);
+  }
+
+  bool RinhaCompiler::isInt(llvm::Value* val) {
+    return val->getType()->isIntegerTy();
+  }
+
+  
+  bool RinhaCompiler::isBool(llvm::Value* val) {
+    return val->getType()->isIntegerTy(1);
   }
 
   void RinhaCompiler::printValName(llvm::Value* val) {

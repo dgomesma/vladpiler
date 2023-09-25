@@ -93,6 +93,8 @@ namespace AST {
     BinOp binop;
 
     Binary(Term* _lhs, Term* _rhs, BinOp _binop);
+
+    llvm::Value* getVal() override;
   };
 
   struct Parameter: Symbol {
@@ -256,6 +258,10 @@ namespace Compiler {
     llvm::Value* createTupleDescriptor(llvm::Value* tuple);
     llvm::Value* createUndefined();
 
+    bool is32Int(llvm::Value*);
+    bool isInt(llvm::Value*);    
+    bool isBool(llvm::Value*);
+
     void printValName(llvm::Value* val);
     void printTuple(llvm::Value* tuple);
     void _print(llvm::Value*);
@@ -285,6 +291,20 @@ namespace Compiler {
     llvm::Value* createInt(int32_t value);
     llvm::Value* createStr(const std::string& str);
     llvm::Value* createTuple(llvm::Value* value1, llvm::Value* value2);
+
+    llvm::Value* createAdd(llvm::Value* value1, llvm::Value* value2);
+    llvm::Value* createMinus(llvm::Value* value1, llvm::Value* value2);
+    llvm::Value* createMult(llvm::Value* value1, llvm::Value* value2);
+    llvm::Value* createDiv(llvm::Value* value1, llvm::Value* value2);
+    llvm::Value* createMod(llvm::Value* value1, llvm::Value* value2);
+    llvm::Value* createEq(llvm::Value* value1, llvm::Value* value2);
+    llvm::Value* createNeq(llvm::Value* value1, llvm::Value* value2);
+    llvm::Value* createGt(llvm::Value* value1, llvm::Value* value2);
+    llvm::Value* createLt(llvm::Value* value1, llvm::Value* value2);
+    llvm::Value* createGte(llvm::Value* value1, llvm::Value* value2);
+    llvm::Value* createLte(llvm::Value* value1, llvm::Value* value2);
+    llvm::Value* createAnd(AST::Term* value1, AST::Term* value2);
+    llvm::Value* createOr(AST::Term* value1, AST::Term* value2);
     void createVoidReturn();
     void createReturn(llvm::Value* val);
     void createReturn(uint32_t val);
