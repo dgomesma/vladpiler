@@ -185,9 +185,11 @@ namespace AST {
   };
 
   struct Var : Term {
-    std::string name;
+    std::unique_ptr<std::string> name;
 
-    Var(std::string&& name);
+    Var(std::string* name);
+
+    llvm::Value* getVal() override;
   };
 }
 
@@ -292,6 +294,7 @@ namespace Compiler {
 
     // Declare an extern function at the beginning of the module
     llvm::Function* getExternFunction(llvm::Type* ret, const std::vector<llvm::Type*>& args, const std::string& name);
+    llvm::Value* getVariable(const std::string& name);
 
     llvm::Value* createBool(bool value);
     llvm::Value* createInt(int32_t value);

@@ -125,13 +125,19 @@ namespace AST{
     first(_first), second(_second) {}
 
   llvm::Value* Tuple::getVal() {
-    Compiler::RinhaCompiler& generator = Compiler::RinhaCompiler::getSingleton();
-    return generator.createTuple(first->getVal(), second->getVal());
+    Compiler::RinhaCompiler& compiler = Compiler::RinhaCompiler::getSingleton();
+    return compiler.createTuple(first->getVal(), second->getVal());
   }
 
-  Var::Var(std::string&& _name) :
-    name(std::move(_name)) {};
+  Var::Var(std::string* _name) :
+    name(_name) {};
+
+  llvm::Value* Var::getVal() {
+    Compiler::RinhaCompiler& compiler = Compiler::RinhaCompiler::getSingleton();
+    return compiler.getVariable(*name);
   }
+
+}
 
 namespace Compiler {
 
@@ -282,6 +288,11 @@ namespace Compiler {
     const std::vector<llvm::Type*> args(_args);
     return createFunction(type, args, name);
   };  
+
+  llvm::Value* RinhaCompiler::getVariable(const std::string& name) {
+    llvm::Value* var = symtbl_stack.getVariable(name);
+    return var ?  var : createUndefined();
+  }
 
   llvm::Function* RinhaCompiler::getExternFunction(llvm::Type* ret, const std::vector<llvm::Type*>& args, const std::string& name) {
     llvm::Function* print_fn = symtbl_stack.getFunction(name, ret, args);    
