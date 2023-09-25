@@ -231,7 +231,15 @@ namespace Compiler {
 
   class RinhaCompiler {
   private:
-    
+
+    struct TuplePtrTypes{
+      llvm::Type* first_ptr_type;
+      llvm::Type* second_ptr_type;
+    };
+   
+    std::map<std::string, TuplePtrTypes> tuple_man_map;
+    std::map<std::string, llvm::Type*> id_type_map;
+   
     static RinhaCompiler* singleton;
 
     llvm::LLVMContext context;
@@ -248,6 +256,7 @@ namespace Compiler {
     llvm::Value* createTupleDescriptor(llvm::Value* tuple);
     llvm::Value* createUndefined();
 
+    void printValName(llvm::Value* val);
     void printTuple(llvm::Value* tuple);
     void _print(llvm::Value*);
     llvm::Type* getPtrType(llvm::Value*);
