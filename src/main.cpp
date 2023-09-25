@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cxxopts.hpp>
 #include <boost/bimap.hpp>
+#include <filesystem>
 #include "common.h"
 #include "lexer.h"
 #include "compiler.h"
@@ -31,6 +32,14 @@ void init_global() {
   //yydebug = 1
 }
 
+std::string changeExtToLL(const std::string& path, const std::string& new_dir) {
+  std::filesystem::path p(path);
+  std::string filename = p.stem().string();
+  std::filesystem::path newFile(new_dir);
+  newFile /= filename + ".ll";
+  return newFile.string();
+}
+
 void parse_args(int argc, char* argv[], args_t& args) {
   constexpr const char prog_arg[] = "program";
   constexpr const char src_arg[] = "source"; 
@@ -46,8 +55,8 @@ void parse_args(int argc, char* argv[], args_t& args) {
   options_parser.add_options()
   (prog_arg, "Main program to be run", cxxopts::value<std::string>()->default_value(comp_str))
   (src_arg, "Source file to read from", cxxopts::value<std::string>()->default_value(""))
-  (help_arg, "Print help message in case you're not based enough to guess the "
-    "arguments for this program by sole intuition and divine clairvoyance.");
+  (help_arg, "Print this help message.");
+  options_parser.parse_positional({src_arg});
   auto options = options_parser.parse(argc, argv);
 
   if (options.count("help")) {
@@ -69,7 +78,7 @@ int main(int argc, char* argv[]) {
       Lexer::tokens_scanner(args.filename);
       break;
     case program_t::COMPILER:
-      Compiler::compile(args.filename, "out.ll");
+      Compiler::compile(args.filename, changeExtToLL(args.filename, "llvm"));
       break;
     default:
       break;
