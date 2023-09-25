@@ -115,6 +115,7 @@ namespace AST {
     std::unique_ptr<Term> value;
 
     Function(Parameters* _parameters, Term* _value);
+
   };
 
   struct Let : Term {
@@ -135,7 +136,10 @@ namespace AST {
     If(Term* _condition, 
       Term* _then, 
       Term* _orElse);
+
+    llvm::Value* getVal() override;
   };
+
 
   struct Print : Term {
     std::unique_ptr<Term> arg;
@@ -305,9 +309,11 @@ namespace Compiler {
     llvm::Value* createLte(llvm::Value* value1, llvm::Value* value2);
     llvm::Value* createAnd(AST::Term* value1, AST::Term* value2);
     llvm::Value* createOr(AST::Term* value1, AST::Term* value2);
+
     void createVoidReturn();
     void createReturn(llvm::Value* val);
     void createReturn(uint32_t val);
+    llvm::Value* createIfElse(AST::Term* cond, AST::Term* then, AST::Term* orElse);
 
     llvm::Value* getTupleFirst(llvm::Value* tuple);
     llvm::Value* getTupleSecond(llvm::Value* tuple);
