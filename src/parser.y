@@ -77,6 +77,7 @@
 %left T_AND T_OR
 %left T_PLUS T_MINUS
 %left T_MULT T_DIV
+%nonassoc T_FIRST T_SECOND
 %nonassoc T_MOD
 %nonassoc T_EQ T_NEQ T_GT T_LT T_GTE T_LTE
 %nonassoc T_LP T_RP
@@ -168,9 +169,9 @@ binary: term T_PLUS term	{ $$ = new AST::Binary($1, $3, AST::BinOp::PLUS); 	}
 
 tuple: T_LP term T_COMMA term T_RP 	{ $$ = new AST::Tuple($2, $4); 	}
 
-first: T_FIRST T_LP term T_RP		{ $$ = new AST::First($3); 		}
+first: T_FIRST term 				{ $$ = new AST::First($2); 		}
 
-second: T_SECOND T_LP term T_RP		{ $$ = new AST::Second($3); 	}
+second: T_SECOND term 				{ $$ = new AST::Second($2); 	}
 
 print: T_PRINT T_LP term T_RP		{ $$ = new AST::Print($3); 		}
 
