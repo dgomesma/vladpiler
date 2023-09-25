@@ -75,6 +75,11 @@ namespace AST{
   Second::Second(Term* _arg) :
     arg(_arg) {}
 
+  llvm::Value* Second::getVal() {
+    Compiler::RinhaCompiler& compiler = Compiler::RinhaCompiler::getSingleton();
+    return compiler.getTupleSecond(arg->getVal());
+  }
+
   Bool::Bool(bool _val) :
     val(_val) {};
 
@@ -285,6 +290,11 @@ namespace Compiler {
     return tuple;
   }
 
+  llvm::Value* RinhaCompiler::createUndefined() {
+    llvm::Value* zero = builder.getInt8(0);
+    return builder.CreateIntToPtr(zero, llvm::Type::getInt8PtrTy(context));
+  }
+
   void RinhaCompiler::createVoidReturn() {
     builder.CreateRetVoid();    
   }
@@ -302,9 +312,18 @@ namespace Compiler {
     llvm::AllocaInst* alloca = llvm::dyn_cast<llvm::AllocaInst>(tuple);
     llvm::Type* alloc_type = alloca->getAllocatedType();
     if (!alloc_type->isStructTy()) return tuple;
-    llvm::Value* zero = builder.getInt32(0);
-    llvm::Value* second_element_ptr = builder.CreateGEP(alloc_type, alloca, {zero, zero});
-    return builder.CreateLoad(second_element_ptr->getType(), second_element_ptr);
+    llvm::Value* first_element_ptr = builder.CreateStructGEP(alloc_type, alloca, 0);
+    return builder.CreateLoad(alloc_type->getStructElementType(0), first_element_ptr);
+  }
+
+  llvm::Value* RinhaCompiler::getTupleSecond(llvm::Value* tuple) {
+    if (!llvm::isa<llvm::AllocaInst>(tuple)) return createUndefined();
+    llvm::AllocaInst* alloca = llvm::dyn_cast<llvm::AllocaInst>(tuple);
+    llvm::Type* alloc_type = alloca->getAllocatedType();
+    if (!alloc_type->isStructTy()) return createUndefined();
+    if (alloc_type->getStructNumElements() < 2) return createUndefined();
+    llvm::Value* second_element_ptr = builder.CreateStructGEP(alloc_type, alloca, 1);
+    return builder.CreateLoad(alloc_type->getStructElementType(1), second_element_ptr);
   }
 
   llvm::Value* RinhaCompiler::print(llvm::Value* val) {
@@ -326,7 +345,8 @@ namespace Compiler {
       print_name = "print_closure";
       type = llvm::Type::getVoidTy(context);
     } else {
-      std::cerr << "Unknown type in print statement. Aborting." << std::endl;
+      print_name = "print_undefined";
+      type = llvm::Type::getVoidTy(context);
       abort();
     }
 
