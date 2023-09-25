@@ -119,9 +119,9 @@ parameters: parameters T_COMMA parameter {
 	}
 	| { $$ = new AST::Parameters(); }
 
-parameter: T_IDENTIFIER { $$ = new AST::Parameter(std::move($1)); }
+parameter: T_IDENTIFIER { $$ = new AST::Parameter($1); }
 
-var: T_IDENTIFIER 		{ $$ = new AST::Var(std::string(yytext)); }
+var: T_IDENTIFIER 		{ $$ = new AST::Var($1); }
 
 function: T_FN T_LP parameters T_RP T_ARROW T_LCB term T_RCB
 	{ $$ = new AST::Function($3, $7); }
