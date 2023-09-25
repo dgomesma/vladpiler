@@ -75,6 +75,12 @@ namespace AST{
   Let::Let(Parameter* _parameter, Term* _val, Term* _next) :
     parameter(_parameter), val(_val), next(_next) {}
 
+  llvm::Value* Let::getVal() {
+    Compiler::RinhaCompiler& compiler = Compiler::RinhaCompiler::getSingleton();
+    compiler.createVariable(*parameter->identifier, val->getVal());
+    return next->getVal();
+  }
+
   If::If(Term* _condition, Term* _then, Term* _orElse) :
     condition(_condition), then(_then), orElse(_orElse) {}
 
@@ -531,6 +537,10 @@ namespace Compiler {
 
     return phi;
    }
+
+  void RinhaCompiler::createVariable(const std::string& identifier, llvm::Value* val) {
+    symtbl_stack.insertVariable(identifier, val);
+  }
 
   llvm::Type* RinhaCompiler::getPtrType(llvm::Value* val) {
     llvm::Type* type = val->getType();

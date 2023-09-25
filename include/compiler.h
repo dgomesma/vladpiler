@@ -126,6 +126,8 @@ namespace AST {
     Let(Parameter* _parameter,
       Term* _val, 
       Term* _next);
+
+    llvm::Value* getVal() override;
   };
 
   struct If : Term {
@@ -314,6 +316,7 @@ namespace Compiler {
     void createReturn(llvm::Value* val);
     void createReturn(uint32_t val);
     llvm::Value* createIfElse(AST::Term* cond, AST::Term* then, AST::Term* orElse);
+    void createVariable(const std::string& identifier, llvm::Value* val);
 
     llvm::Value* getTupleFirst(llvm::Value* tuple);
     llvm::Value* getTupleSecond(llvm::Value* tuple);
