@@ -413,16 +413,41 @@ namespace Compiler {
 
     return createUndefined();
   };
-  llvm::Value* RinhaCompiler::createOr(AST::Term* value1, AST::Term* value2){
+  llvm::Value* RinhaCompiler::createOr(AST::Term* lhs, AST::Term* rhs){
+    llvm::Function* current_fn = builder.GetInsertBlock()->getParent();
+    llvm::BasicBlock* or_block = llvm::BasicBlock::Create(context, "or", current_fn);
+    llvm::BasicBlock* or_false = llvm::BasicBlock::Create(context, "and_false", current_fn);
+    llvm::BasicBlock* merge_block = llvm::BasicBlock::Create(context, "or_merge", current_fn);
 
-    return createUndefined();
+    builder.CreateBr(or_block);
+    builder.SetInsertPoint(or_block);
+
+    llvm::Value* lhs_val = lhs->getVal();
+    if (!isBool(lhs_val)) return createUndefined();
+
+    llvm::BasicBlock* current = builder.GetInsertBlock();
+    builder.CreateCondBr(lhs_val, merge_block, or_false);
+
+    builder.SetInsertPoint(or_false);
+    llvm::Value* rhs_val = rhs->getVal();
+    if (!isBool(rhs_val)) return createUndefined();
+
+    llvm::BasicBlock* current_or_false = builder.GetInsertBlock();
+    builder.CreateBr(merge_block);
+
+    builder.SetInsertPoint(merge_block);
+    llvm::PHINode *and_phi = builder.CreatePHI(lhs_val->getType(), 2, "or_phi");
+    and_phi->addIncoming(lhs_val, current);
+    and_phi->addIncoming(rhs_val, current_or_false);
+
+    return and_phi;
   };
 
   llvm::Value* RinhaCompiler::createAnd(AST::Term* lhs, AST::Term* rhs){
     llvm::Function* current_fn = builder.GetInsertBlock()->getParent();
     llvm::BasicBlock* and_block = llvm::BasicBlock::Create(context, "and", current_fn);
     llvm::BasicBlock* true_block = llvm::BasicBlock::Create(context, "and_true", current_fn);
-    llvm::BasicBlock* merge_block = llvm::BasicBlock::Create(context, "and_false", current_fn);
+    llvm::BasicBlock* merge_block = llvm::BasicBlock::Create(context, "and_merge", current_fn);
 
     builder.CreateBr(and_block);
     builder.SetInsertPoint(and_block);
