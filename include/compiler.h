@@ -259,10 +259,12 @@ namespace Compiler {
     std::unique_ptr<AST::File> ast_root;
     SymbolTableStack symtbl_stack;
     const std::string& filename;
+    llvm::Type* const default_type;
 
     llvm::IRBuilder<>::InsertPoint externInsertPoint;
 
     RinhaCompiler(const std::string& input_file);
+    llvm::FunctionType* getDefaultFnType(uint32_t n_args);
     llvm::Value* createTupleDescriptor(llvm::Value* tuple);
     llvm::Value* createUndefined();
 
@@ -287,10 +289,6 @@ namespace Compiler {
     // Prints code to the given output file
     void printCode(const std::string& out_file);
 
-    // Creates a function, creates an entry block and change the pointer to the
-    // function's entry block.
-    llvm::Function* createFunction(llvm::Type* ret, std::initializer_list<llvm::Type*> args, const std::string& name);
-    llvm::Function* createFunction(llvm::Type* ret, const std::vector<llvm::Type*>& args, const std::string& name);
 
     // Declare an extern function at the beginning of the module
     llvm::Function* getExternFunction(llvm::Type* ret, const std::vector<llvm::Type*>& args, const std::string& name);
@@ -314,6 +312,10 @@ namespace Compiler {
     llvm::Value* createLte(llvm::Value* value1, llvm::Value* value2);
     llvm::Value* createAnd(AST::Term* value1, AST::Term* value2);
     llvm::Value* createOr(AST::Term* value1, AST::Term* value2);
+  
+    llvm::Function* createClosure(const std::string& name, uint32_t n_args);
+    llvm::Function* createFunction(llvm::Type* ret, std::initializer_list<llvm::Type*> args, const std::string& name);
+    llvm::Function* createFunction(llvm::Type* ret, const std::vector<llvm::Type*>& args, const std::string& name);
 
     void createVoidReturn();
     void createReturn(llvm::Value* val);

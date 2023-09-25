@@ -242,13 +242,13 @@ namespace Compiler {
   }
   
   std::unique_ptr<AST::File> ast_root;
-
   RinhaCompiler* RinhaCompiler::singleton = nullptr;
 
   RinhaCompiler::RinhaCompiler(const std::string& input_file) :
     builder(context),
     module(input_file, context),
-    filename(input_file) {};
+    filename(input_file),
+    default_type(builder.getInt32Ty()) {};
 
   bool RinhaCompiler::isInitialized() { return singleton != nullptr; }
 
@@ -273,11 +273,25 @@ namespace Compiler {
     module.print(ostream, nullptr);
   };
 
+  llvm::FunctionType* RinhaCompiler::getDefaultFnType(uint32_t n_args) {
+    std::vector<llvm::Type*> args;
+    for (uint32_t i = 0; i < n_args; i++) {
+      args.push_back(default_type); 
+    }
+
+    return llvm::FunctionType::get(default_type, args, false);
+  }
+
+  llvm::Function* RinhaCompiler::createClosure(const std::string& name, uint32_t n_args) {
+    llvm::FunctionType* default_fn_type = getDefaultFnType(n_args);
+    llvm::Function* closure = llvm::Function::Create(default_fn_type, llvm::Function::ExternalLinkage, name, module);
+    symtbl_stack.insertFunction(name, default_type, default_fn_type->params(), closure);
+    return closure;
+  }
+
   llvm::Function* RinhaCompiler::createFunction(llvm::Type* ret, const std::vector<llvm::Type*>& args, const std::string& name) {
     llvm::FunctionType* fn_type = llvm::FunctionType::get(ret, args, false);
     llvm::Function* fn = llvm::Function::Create(fn_type, llvm::Function::ExternalLinkage, name, module);
-    llvm::BasicBlock* fn_entry = llvm::BasicBlock::Create(context, "entry", fn);
-    builder.SetInsertPoint(fn_entry);
     
     symtbl_stack.pushScope();
         
