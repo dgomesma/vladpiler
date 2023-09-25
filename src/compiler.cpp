@@ -279,11 +279,16 @@ namespace Compiler {
   }
 
   llvm::Value* RinhaCompiler::createTuple(llvm::Value* first, llvm::Value* second) {
+    static int i = 0;
+
     llvm::Type* first_type = first->getType();
     llvm::Type* second_type = second->getType();
 
+    const std::string tuple_name = "tuple_" + std::to_string(i++);
     llvm::StructType* tuple_type = llvm::StructType::get(context, {first_type, second_type});
-    llvm::Value* tuple = builder.CreateAlloca(tuple_type);
+    llvm::Value* tuple = builder.CreateAlloca(tuple_type, nullptr, tuple_name);
+    tuple_man_map[tuple_name] = {getPtrType(first), getPtrType(second)};
+
     llvm::Value* zero = builder.getInt32(0);
     llvm::Value* one = builder.getInt32(1);
 
@@ -314,8 +319,7 @@ namespace Compiler {
 
   llvm::Type* RinhaCompiler::getPtrType(llvm::Value* val) {
     llvm::Type* type = val->getType();
-    if (!type->isPointerTy()) return type;
-    if (!type->isOpaquePointerTy()) return type;
+    if (!type->isPointerTy()) return nullptr;
     if (llvm::isa<llvm::AllocaInst>(val)) {
       llvm::AllocaInst* alloca = llvm::dyn_cast<llvm::AllocaInst>(val);
       return alloca->getAllocatedType();
@@ -338,15 +342,30 @@ namespace Compiler {
   }
 
   llvm::Value* RinhaCompiler::getTupleFirst(llvm::Value* tuple) {
+    static int i = 0;
+    std::string id = "first_" + std::to_string(i++);
+
+    id_type_map[id] = tuple_man_map[tuple->getName().str()].first_ptr_type;
     llvm::Type* alloc_type = getPtrType(tuple);
+    if (alloc_type->isOpaquePointerTy()) {
+      alloc_type = id_type_map[tuple->getName().str()];
+    }
+    if (!tuple->getType()->isPointerTy()) std::cerr << "Oh no" << std::endl;
     llvm::Value* first_element_ptr = builder.CreateStructGEP(alloc_type, tuple, 0);
-    return builder.CreateLoad(alloc_type->getStructElementType(0), first_element_ptr);
+    return builder.CreateLoad(alloc_type->getStructElementType(0), first_element_ptr, id);
   }
 
   llvm::Value* RinhaCompiler::getTupleSecond(llvm::Value* tuple) {
+    static int i = 0;
+    std::string id = "second_" + std::to_string(i++);
+
+    id_type_map[id] = tuple_man_map[tuple->getName().str()].second_ptr_type;
     llvm::Type* alloc_type = getPtrType(tuple);
+    if (alloc_type->isOpaquePointerTy()) {
+      alloc_type = id_type_map[tuple->getName().str()];
+    }
     llvm::Value* second_element_ptr = builder.CreateStructGEP(alloc_type, tuple, 1);
-    return builder.CreateLoad(alloc_type->getStructElementType(1), second_element_ptr);
+    return builder.CreateLoad(alloc_type->getStructElementType(1), second_element_ptr, id);
   }
 
   llvm::Value* RinhaCompiler::print(llvm::Value* val) {
@@ -377,7 +396,8 @@ namespace Compiler {
         print_name = "print_str";
         args = {llvm::Type::getInt8PtrTy(context)};
       } else if (ptr_type->isPointerTy()) {
-        // Yet to be handled
+        printTuple(val);
+        return;
       }
     } else if (type->isFunctionTy()) {
       print_name = "print_closure";
@@ -391,6 +411,10 @@ namespace Compiler {
     builder.CreateCall(print_fn, {val});
   }
 
+  void RinhaCompiler::printValName(llvm::Value* val) {
+    std::cout << "Value name: " << val->getName().str()<< std::endl;
+  } 
+  
   // Assume tuple is well formatted
   void RinhaCompiler::printTuple(llvm::Value* tuple_ptr) {
     llvm::Type* void_type = llvm::Type::getVoidTy(context);
