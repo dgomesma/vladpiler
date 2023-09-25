@@ -67,6 +67,11 @@ namespace AST{
   First::First(Term* _arg) :
     arg(_arg) {}
 
+  llvm::Value* First::getVal() {
+    Compiler::RinhaCompiler& compiler = Compiler::RinhaCompiler::getSingleton(); 
+    return compiler.getTupleFirst(arg->getVal());
+  }
+
   Second::Second(Term* _arg) :
     arg(_arg) {}
 
@@ -290,6 +295,16 @@ namespace Compiler {
 
   void RinhaCompiler::createReturn(uint32_t val) {
     builder.CreateRet(builder.getInt32(val));
+  }
+
+  llvm::Value* RinhaCompiler::getTupleFirst(llvm::Value* tuple) {
+    if (!llvm::isa<llvm::AllocaInst>(tuple)) return tuple;
+    llvm::AllocaInst* alloca = llvm::dyn_cast<llvm::AllocaInst>(tuple);
+    llvm::Type* alloc_type = alloca->getAllocatedType();
+    if (!alloc_type->isStructTy()) return tuple;
+    llvm::Value* zero = builder.getInt32(0);
+    llvm::Value* second_element_ptr = builder.CreateGEP(alloc_type, alloca, {zero, zero});
+    return builder.CreateLoad(second_element_ptr->getType(), second_element_ptr);
   }
 
   llvm::Value* RinhaCompiler::print(llvm::Value* val) {

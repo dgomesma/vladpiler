@@ -146,6 +146,8 @@ namespace AST {
     std::unique_ptr<Term> arg;
 
     First(Term* _arg);
+
+    llvm::Value* getVal() override;
   };
 
   struct Second : Term {
@@ -240,6 +242,7 @@ namespace Compiler {
     llvm::IRBuilder<>::InsertPoint externInsertPoint;
 
     RinhaCompiler(const std::string& input_file);
+    llvm::Value* createTupleDescriptor(llvm::Value* tuple);
   public:
     enum class insert_point_loc_t {
       EXTERN,
@@ -269,6 +272,7 @@ namespace Compiler {
     void createReturn(llvm::Value* val);
     void createReturn(uint32_t val);
 
+    llvm::Value* getTupleFirst(llvm::Value* tuple);
     llvm::Value* print(llvm::Value*);
   };
 
