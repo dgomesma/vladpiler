@@ -602,23 +602,56 @@ namespace Compiler {
     }
   }
 
-  llvm::Value* RinhaCompiler::getTupleFirst(llvm::Value* tuple) {
-    static int i = 0;
-    std::string id = "first_" + std::to_string(i++);
+  llvm::Value* RinhaCompiler::getTupleFirst(llvm::Value* tuple_ptr) {
+    if (!tuple_ptr->getType()->isPointerTy()) {
+      std::cerr << "Warning: Running first on non-pointer value. " << std::endl; 
+      return tuple_ptr;
+    }
 
-    llvm::Type* alloc_type = getPtrType(tuple);
-    if (!tuple->getType()->isPointerTy()) std::cerr << "Oh no" << std::endl;
-    llvm::Value* first_element_ptr = builder.CreateStructGEP(alloc_type, tuple, 0);
-    return builder.CreateLoad(alloc_type->getStructElementType(0), first_element_ptr, id);
+    llvm::Type* type = ptr_type_table[tuple_ptr->getName().str()];
+    if (!type) {
+      std::cerr << "Error: Could not find an entry on tuple-type map for given pointer." << std::endl;   
+      abort();
+    }
+    
+    llvm::StructType* tuple_type; 
+    if (type->isStructTy() && type->getStructNumElements() == 2) 
+      tuple_type = llvm::dyn_cast<llvm::StructType>(type);
+    else {
+      std::cerr << "Warning: Running first on non-tuple pointer." << std::endl;
+      return tuple_ptr;
+    }
+    
+    llvm::Value* first_element_ptr = builder.CreateStructGEP(tuple_type, tuple_ptr, 0);
+    llvm::Value* load = builder.CreateLoad(tuple_type->getStructElementType(0), first_element_ptr, "load");
+    ptr_type_table[load->getName().str()] = tuple_type;
+    return load;
   }
 
-  llvm::Value* RinhaCompiler::getTupleSecond(llvm::Value* tuple) {
-    static int i = 0;
-    std::string id = "second_" + std::to_string(i++);
+  llvm::Value* RinhaCompiler::getTupleSecond(llvm::Value* tuple_ptr) {
+    if (!tuple_ptr->getType()->isPointerTy()) {
+      std::cerr << "Warning: Running first on non-pointer value. " << std::endl; 
+      return tuple_ptr;
+    }
 
-    llvm::Type* alloc_type = getPtrType(tuple);
-    llvm::Value* second_element_ptr = builder.CreateStructGEP(alloc_type, tuple, 1);
-    return builder.CreateLoad(alloc_type->getStructElementType(1), second_element_ptr, id);
+    llvm::Type* type = ptr_type_table[tuple_ptr->getName().str()];
+    if (!type) {
+      std::cerr << "Error: Could not find an entry on tuple-type map for given pointer." << std::endl;   
+      abort();
+    }
+    
+    llvm::StructType* tuple_type; 
+    if (type->isStructTy() && type->getStructNumElements() == 2) 
+      tuple_type = llvm::dyn_cast<llvm::StructType>(type);
+    else {
+      std::cerr << "Warning: Running first on non-tuple pointer." << std::endl;
+      return tuple_ptr;
+    }
+    
+    llvm::Value* first_element_ptr = builder.CreateStructGEP(tuple_type, tuple_ptr, 1);
+    llvm::Value* load = builder.CreateLoad(tuple_type->getStructElementType(1), first_element_ptr, "load");
+    ptr_type_table[load->getName().str()] = tuple_type;
+    return load;
   }
 
   llvm::Value* RinhaCompiler::print(llvm::Value* val) {
