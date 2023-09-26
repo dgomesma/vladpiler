@@ -265,9 +265,10 @@ namespace Compiler {
 
     RinhaCompiler(const std::string& input_file);
     llvm::FunctionType* getDefaultFnType(uint32_t n_args);
+    llvm::Function* createMain();
     llvm::Value* createTupleDescriptor(llvm::Value* tuple);
     llvm::Value* createUndefined();
-
+    
     bool is32Int(llvm::Value*);
     bool isInt(llvm::Value*);    
     bool isBool(llvm::Value*);

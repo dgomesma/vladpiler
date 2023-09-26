@@ -252,12 +252,21 @@ namespace Compiler {
 
   bool RinhaCompiler::isInitialized() { return singleton != nullptr; }
 
+  llvm::Function* RinhaCompiler::createMain() {
+    llvm::FunctionType* main_fn_type = llvm::FunctionType::get(llvm::Type::getInt32Ty(context), {}, false);
+    llvm::Function* main = llvm::Function::Create(main_fn_type, llvm::Function::ExternalLinkage, "main", module);
+    llvm::BasicBlock* main_entry = llvm::BasicBlock::Create(context, "entry", main);
+    builder.SetInsertPoint(main_entry);
+
+    return main;
+  }
+
   RinhaCompiler& RinhaCompiler::initialize(const std::string& input_file) {  
     if (isInitialized()) throw std::runtime_error("IRGenerator is already initialized.");
     singleton = new RinhaCompiler(input_file);
     RinhaCompiler& generator = *singleton;
     generator.externInsertPoint = generator.builder.saveIP();
-    generator.createFunction(llvm::Type::getInt32Ty(generator.context), {}, "main");
+    generator.createMain();
     
     return *singleton;
   };
