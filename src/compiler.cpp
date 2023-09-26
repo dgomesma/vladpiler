@@ -4,6 +4,7 @@
 #include "parser.tab.h"
 #include "rinha_extern.h"
 #include <llvm/IR/Instructions.h>
+#include <ostream>
 
 //==================================
 // Symbol Table
@@ -340,19 +341,20 @@ namespace Compiler {
   }
 
   llvm::Value* RinhaCompiler::createStr(const std::string& str) {
-    return builder.CreateGlobalString(str, "", 0, &module);
+    const std::string name = "str";
+    llvm::GlobalVariable* ret = builder.CreateGlobalString(str, name, 0, &module);
+    ptr_type_table[ret->getName().str()] = ret->getValueType();
+    return ret;
   }
 
   llvm::Value* RinhaCompiler::createTuple(llvm::Value* first, llvm::Value* second) {
-    static int i = 0;
-
     llvm::Type* first_type = first->getType();
     llvm::Type* second_type = second->getType();
 
-    const std::string tuple_name = "tuple_" + std::to_string(i++);
+    const std::string tuple_name = "tuple";
     llvm::StructType* tuple_type = llvm::StructType::get(context, {first_type, second_type});
     llvm::Value* tuple = builder.CreateAlloca(tuple_type, nullptr, tuple_name);
-    tuple_man_map[tuple_name] = {getPtrType(first), getPtrType(second)};
+    ptr_type_table[tuple->getName().str()] = tuple_type;
 
     llvm::Value* zero = builder.getInt32(0);
     llvm::Value* one = builder.getInt32(1);
@@ -604,11 +606,7 @@ namespace Compiler {
     static int i = 0;
     std::string id = "first_" + std::to_string(i++);
 
-    id_type_map[id] = tuple_man_map[tuple->getName().str()].first_ptr_type;
     llvm::Type* alloc_type = getPtrType(tuple);
-    if (alloc_type->isOpaquePointerTy()) {
-      alloc_type = id_type_map[tuple->getName().str()];
-    }
     if (!tuple->getType()->isPointerTy()) std::cerr << "Oh no" << std::endl;
     llvm::Value* first_element_ptr = builder.CreateStructGEP(alloc_type, tuple, 0);
     return builder.CreateLoad(alloc_type->getStructElementType(0), first_element_ptr, id);
@@ -618,11 +616,7 @@ namespace Compiler {
     static int i = 0;
     std::string id = "second_" + std::to_string(i++);
 
-    id_type_map[id] = tuple_man_map[tuple->getName().str()].second_ptr_type;
     llvm::Type* alloc_type = getPtrType(tuple);
-    if (alloc_type->isOpaquePointerTy()) {
-      alloc_type = id_type_map[tuple->getName().str()];
-    }
     llvm::Value* second_element_ptr = builder.CreateStructGEP(alloc_type, tuple, 1);
     return builder.CreateLoad(alloc_type->getStructElementType(1), second_element_ptr, id);
   }
@@ -647,6 +641,11 @@ namespace Compiler {
       print_name = "print_num";
       args = {val->getType()};
     } else if (type->isPointerTy()) {
+      std::cerr << "Pointer name: " << val->getName().str() << std::endl;
+      std::cerr << "Pointer type: ";
+      ptr_type_table[val->getName().str()]->print(llvm::errs());
+      /*
+      ptr_type_table[val->getName().str()] << std::endl;
       llvm::Type* ptr_type = getPtrType(val);
       if (ptr_type->isStructTy()) {
         printTuple(val);
@@ -655,14 +654,10 @@ namespace Compiler {
         print_name = "print_str";
         args = {llvm::Type::getInt8PtrTy(context)};
       } else if (ptr_type->isPointerTy()) {
-        // Lots of pain in this part code
-        llvm::Type* nested_ptr_type = id_type_map[val->getName().str()];
-        if (nested_ptr_type->isStructTy()) { printTuple(val); return; }
-        else if (nested_ptr_type->isArrayTy() && nested_ptr_type->getArrayElementType()->isIntegerTy(8)) {
-          print_name = "print_str";
-          args = {llvm::Type::getInt8PtrTy(context)};
-        }
+
+       
       }
+    */
     } else if (type->isFunctionTy()) {
       print_name = "print_closure";
     } else {

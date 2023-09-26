@@ -246,10 +246,7 @@ namespace Compiler {
       llvm::Type* first_ptr_type;
       llvm::Type* second_ptr_type;
     };
-   
-    std::map<std::string, TuplePtrTypes> tuple_man_map;
-    std::map<std::string, llvm::Type*> id_type_map;
-   
+ 
     static RinhaCompiler* singleton;
 
     llvm::LLVMContext context;
@@ -262,6 +259,7 @@ namespace Compiler {
     llvm::Type* const default_type;
 
     llvm::IRBuilder<>::InsertPoint externInsertPoint;
+    std::map<std::string, llvm::Type*> ptr_type_table;
 
     RinhaCompiler(const std::string& input_file);
     llvm::FunctionType* getDefaultFnType(uint32_t n_args);
