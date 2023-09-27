@@ -85,6 +85,8 @@ namespace AST {
     std::unique_ptr<Arguments> args;
 
     Call(std::string* _callee, Arguments* _args);    
+
+    llvm::Value* getVal() override;
   };
 
   struct Binary : Term {
@@ -115,6 +117,8 @@ namespace AST {
     std::unique_ptr<Term> value;
 
     Function(Parameters* _parameters, Term* _value);
+
+    llvm::Value* getVal() override;
 
   };
 
@@ -196,14 +200,13 @@ namespace AST {
 namespace Compiler {
 
     struct ClosureSignature {
-      std::string name;
-      uint32_t n_args;      
+      std::vector<std::string> params;
       AST::Term* fn_body;
     };
  
     struct EitherValOrClosure {
       llvm::Value* val;
-      std::unique_ptr<ClosureSignature> closureSig;
+      ClosureSignature* closureSig;
     };
 
   // Keeps track of scoped symbols
@@ -217,7 +220,7 @@ namespace Compiler {
     // Get functions may return nullptr if a corresponding value is not found
     EitherValOrClosure* getValue(const std::string& id);
     void insertValue(const std::string& name, llvm::Value* value);
-    void insertClosure(const std::string& name, const ClosureSignature& closure_sig);
+    void insertClosure(const std::string& name, ClosureSignature* closure_sig);
     void pushScope();
     void popScope();
   };
@@ -279,10 +282,7 @@ namespace Compiler {
 
     std::map<llvm::Value*, SpecialValue> special_value_table;
 
-    // Also a "hack". While this kinda works, it doesn not respect scoping, so
-    // you can define a closure inside a closure and it will be callable from
-    // outside, where it shouldn't be.
-    std::map<std::string, ClosureSignature> closure_table;
+    std::map<llvm::Value*, ClosureSignature> closure_table;
     std::map<ClosureSignature*, std::vector<llvm::Function* >> closure_cache;
    
     void printType(llvm::Type* val);
@@ -316,6 +316,7 @@ namespace Compiler {
     // Prints code to the given output file
     void printCode(const std::string& out_file);
 
+
     // Declare an extern function at the beginning of the module
     llvm::Function* getExternFunction(llvm::Type* ret, const std::vector<llvm::Type*>& args, const std::string& name);
     llvm::Value* getVariable(const std::string& name);
@@ -339,9 +340,11 @@ namespace Compiler {
     llvm::Value* createAnd(AST::Term* value1, AST::Term* value2);
     llvm::Value* createOr(AST::Term* value1, AST::Term* value2);
   
-    llvm::Value* createClosure(const std::string& name, uint32_t n_args, AST::Term* fn_body);
+    bool isClosure(llvm::Value* val);
+    llvm::Value* assignClosure(const std::string& name, llvm::Value* val);
+    llvm::Value* createAnonClosure(const std::vector<std::string>& params, AST::Term* fn_body);
     llvm::Value* createClosureVal();
-    llvm::Value* callClosure(const std::string& name, std::vector<llvm::Value*> args);
+    llvm::Value* callClosure(const std::string& name, std::vector<llvm::Value*>& args);
 
     void createVoidReturn();
     void createReturn(llvm::Value* val);

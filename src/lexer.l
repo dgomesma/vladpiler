@@ -156,7 +156,7 @@ second {
 }
 {identifier} {
 	yylval.str_ptr = new std::string;
-	Lexer::get_str(*yylval.str_ptr);
+	Lexer::get_identifier(*yylval.str_ptr);
 	return T_IDENTIFIER;
 }
 
