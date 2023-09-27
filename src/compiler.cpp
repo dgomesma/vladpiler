@@ -3,7 +3,6 @@
 #include "compiler.h"
 #include "parser.tab.h"
 #include "rinha_extern.h"
-#include <llvm/IR/Instructions.h>
 #include <ostream>
 
 //==================================
@@ -332,6 +331,16 @@ namespace Compiler {
     return extern_fn;
   };
 
+  void RinhaCompiler::printType(llvm::Type* type) {
+    type->print(llvm::errs());
+    std::cerr << std::endl;
+  }
+
+  void RinhaCompiler::printType(llvm::Value* val) {
+    std::cerr << "Value " << val->getName().str() << ": ";
+    printType(val->getType());
+  }
+
   llvm::Value* RinhaCompiler::createBool(bool value) {
     return builder.getInt1(value); 
   }
@@ -354,7 +363,13 @@ namespace Compiler {
     const std::string tuple_name = "tuple";
     llvm::StructType* tuple_type = llvm::StructType::get(context, {first_type, second_type});
     llvm::Value* tuple = builder.CreateAlloca(tuple_type, nullptr, tuple_name);
+
     ptr_type_table[tuple->getName().str()] = tuple_type;
+    llvm::Type* first_ptr_type = first_type->isPointerTy() ? 
+      ptr_type_table[first->getName().str()] : nullptr; 
+    llvm::Type* second_ptr_type = second_type->isPointerTy() ?
+      ptr_type_table[second->getName().str()] : nullptr;
+    tuple_ptr_types[tuple->getName().str()] = {first_ptr_type, second_ptr_type};
 
     llvm::Value* zero = builder.getInt32(0);
     llvm::Value* one = builder.getInt32(1);
@@ -621,10 +636,17 @@ namespace Compiler {
       std::cerr << "Warning: Running first on non-tuple pointer." << std::endl;
       return tuple_ptr;
     }
+
+    llvm::Type* pointee_type = nullptr;
+    if (tuple_type->getElementType(0)->isPointerTy()) {
+      pointee_type = tuple_ptr_types[tuple_ptr->getName().str()].first_ptr_type; 
+      assert(pointee_type);
+    }
     
     llvm::Value* first_element_ptr = builder.CreateStructGEP(tuple_type, tuple_ptr, 0);
-    llvm::Value* load = builder.CreateLoad(tuple_type->getStructElementType(0), first_element_ptr, "load");
-    ptr_type_table[load->getName().str()] = tuple_type;
+    llvm::LoadInst* load = builder.CreateLoad(tuple_type->getStructElementType(0), first_element_ptr, "first");
+    if (pointee_type) ptr_type_table[load->getName().str()] = pointee_type;
+
     return load;
   }
 
@@ -675,8 +697,23 @@ namespace Compiler {
       args = {val->getType()};
     } else if (type->isPointerTy()) {
       std::cerr << "Pointer name: " << val->getName().str() << std::endl;
+      llvm::Type* pointee_type = ptr_type_table[val->getName().str()];
+      assert(pointee_type);
       std::cerr << "Pointer type: ";
-      ptr_type_table[val->getName().str()]->print(llvm::errs());
+      pointee_type->print(llvm::errs());
+      std::cerr << std::endl;
+
+      llvm::Type* ptr_type = ptr_type_table[val->getName().str()];
+      
+      if (ptr_type->isArrayTy() && ptr_type->getArrayElementType()->isIntegerTy(8)) {
+        print_name = "print_str";
+        args = {llvm::Type::getInt8PtrTy(context)};
+      }
+
+      else if (ptr_type->isStructTy()) {
+        printTuple(val);  
+        return;
+      }
       /*
       ptr_type_table[val->getName().str()] << std::endl;
       llvm::Type* ptr_type = getPtrType(val);
