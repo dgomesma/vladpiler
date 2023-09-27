@@ -1,6 +1,11 @@
 #!/bin/bash
-program="print"
-source="testcases/${program}.rinha"
+if [[ -z $1 ]]; then
+  source="./testcases/simple.rinha"
+else
+  source="$1"
+fi
+basename=$(basename "$source")
+program="${basename%.*}"
 build="build/${program}.o"
 llfile="llvm/${program}.ll"
 
