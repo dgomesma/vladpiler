@@ -323,39 +323,52 @@ namespace Compiler {
       return createUndefined();
     }
 
-    llvm::AllocaInst* buffer = builder.CreateAlloca(llvm::Type::getInt64Ty(context), nullptr, "ret_buffer");
+    llvm::AllocaInst* buffer = builder.CreateAlloca(llvm::Type::getInt32Ty(context), nullptr, "ret_buffer");
     args.push_back(buffer);
     std::vector<llvm::Type*> arg_types;
     for (llvm::Value* arg : args) arg_types.push_back(arg->getType()); 
-   
+
+    llvm::Function* fn = getCachedClosure(name, arg_types);
+    if (fn) {
+      builder.CreateCall(fn, args);
+      return builder.CreateLoad(llvm::Type::getInt32Ty(context), buffer, "load_ret");        
+    }
+
+    // Create and Set Function
     llvm::FunctionType* fn_type = llvm::FunctionType::get(llvm::Type::getVoidTy(context), arg_types, false);    
-    llvm::Function* fn = llvm::Function::Create(fn_type, llvm::Function::ExternalLinkage, name, module);
+    fn = llvm::Function::Create(fn_type, llvm::Function::ExternalLinkage, name, module);
     llvm::BasicBlock* cur_block = builder.GetInsertBlock();
-
-    insertCachedClosure(name, fn);
-
     llvm::BasicBlock* fn_entry = llvm::BasicBlock::Create(context, "entry", fn);
     builder.SetInsertPoint(fn_entry);
     symtbl_stack.pushScope();
+    insertCachedClosure(name, fn);
 
+    // Get arguments
     assert(closure_sig->params.size() == fn->arg_size() - 1);
     uint64_t i = 0;
     for (i = 0; i < fn->arg_size() - 1; i++) {
       llvm::Argument* arg = fn->getArg(i);
       symtbl_stack.insertValue(closure_sig->params[i], arg);
     }
-
     assert(i == fn->arg_size() - 1);
-    llvm::Value* ret_buffer_ptr = fn->getArg(i);
-        
+
+    // Generate Code
     assert(closure_sig->fn_body);
     llvm::Value* ret_val = closure_sig->fn_body->getVal();
+
+    // Return Value
+    llvm::Value* ret_buffer_ptr = fn->getArg(i);
     builder.CreateStore(ret_val, ret_buffer_ptr, false);
-    symtbl_stack.popScope();
     builder.CreateRetVoid();
 
+    // Exit from Function
     builder.SetInsertPoint(cur_block);
+    symtbl_stack.popScope();
 
+    // Save function data
+    fn_ret_table[fn] = ret_val->getType();
+  
+    // Call function
     builder.CreateCall(fn, args);
     args.pop_back();
     return builder.CreateLoad(ret_val->getType(), buffer, "load_ret");        
@@ -365,7 +378,7 @@ namespace Compiler {
     EitherValOrClosure* var = symtbl_stack.getValue(name);
     if (!var) {
       std::cerr << "Warning: reference to undefined variable " << name << std::endl;
-      return createUndefined();
+      abort();
     }
 
     if (!var->val) {
@@ -774,7 +787,6 @@ namespace Compiler {
     } else if (type->isIntegerTy()) {
       print_name = "print_num";
       args = {val->getType()};
-
     } else if (type->isPointerTy()) {
       llvm::Type* ptr_type = ptr_type_table[ptr_id_table[val]];
       if (!ptr_type) {

@@ -290,6 +290,7 @@ namespace Compiler {
       std::map<llvm::Type*,std::shared_ptr<ClosureInstanceNode>> children;
     };    
 
+    std::map<llvm::Function*, llvm::Type*> fn_ret_table;
     std::map<llvm::Value*, ClosureSignature> closure_table;
     std::map<std::string, std::map<llvm::Type*, std::shared_ptr<ClosureInstanceNode>>> closure_cache;
    
