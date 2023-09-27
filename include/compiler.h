@@ -243,9 +243,9 @@ namespace Compiler {
   private:
 
     // Fortunately tuples are immutable or else we would have problems
-    struct TupleValues{
-      llvm::Type* first_ptr_type;    // Assign nullptr if first/second  is not a ptr
-      llvm::Type* second_ptr_type;
+    struct TuplePtrIds{
+      std::string* first_ptr_id;    // Assign nullptr if first/second  is not a ptr
+      std::string* second_ptr_id;
     };
  
     static RinhaCompiler* singleton;
@@ -260,10 +260,29 @@ namespace Compiler {
     llvm::Type* const default_type;
 
     llvm::IRBuilder<>::InsertPoint externInsertPoint;
-    // Give the pointer value name with val->getName().str() as key and get the
-    // value back.
+
+    /*  So, I did a little bit of a hack here. The idea is to implement a way
+        to associate a "unique identifier" with every pointer value since only
+        instructions have names, and the same pointer might correspond to
+        multiple instructions with different names.
+
+        So, for every instruction/value that corresponds to the same pointer,
+        we do a ptr_id_table[val] = id. We need to make sure this always gets
+        done every time a pointer is moved from one place to another so that
+        the pointer ID can always be retrieved from the value (necessary for
+        printing).
+
+        Then, with this ID, you can access the pointee type, and if we're talking
+        about a struct, we can access the pointer IDs of the struct members (if
+        if has pointers).
+    
+        This could be better designed, but right now I'm in a rush.
+
+        //TODO: Improve this pointer-type record-keeping.
+    */
+    std::map<llvm::Value*, std::string> ptr_id_table;
     std::map<std::string, llvm::Type*> ptr_type_table;
-    std::map<std::string, TupleValues> tuple_ptr_types;
+    std::map<std::string, TuplePtrIds> tuple_ptr_types;
 
     void printType(llvm::Type* val);
     void printType(llvm::Value* val);
