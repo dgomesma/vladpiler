@@ -239,10 +239,7 @@ namespace Compiler {
       std::string* second_ptr_id;
     };
 
-    struct ClosureInstanceNode {
-      llvm::Function* fn;
-      std::map<llvm::Type*,std::shared_ptr<ClosureInstanceNode>> children;
-    };
+    
  
     static RinhaCompiler* singleton;
 
@@ -288,6 +285,11 @@ namespace Compiler {
 
     std::map<llvm::Value*, SpecialValue> special_value_table;
 
+    struct ClosureInstanceNode {
+      llvm::Function* fn;
+      std::map<llvm::Type*,std::shared_ptr<ClosureInstanceNode>> children;
+    };    
+
     std::map<llvm::Value*, ClosureSignature> closure_table;
     std::map<std::string, std::map<llvm::Type*, std::shared_ptr<ClosureInstanceNode>>> closure_cache;
    
@@ -296,6 +298,8 @@ namespace Compiler {
 
     RinhaCompiler(const std::string& input_file);
     // llvm::Function* lookForCosureInstance(const ClosureSignature& closure_sig, const std::vector<llvm::Value*>& args);
+    void _insertCachedClosure(const std::vector<llvm::Type*>& params, uint64_t param_it, std::shared_ptr<ClosureInstanceNode> node, llvm::Function* fn);
+    void insertCachedClosure(const std::string& name, llvm::Function* fn);
     llvm::Function* _getCachedClosure(const std::vector<llvm::Type*>& args, uint64_t args_it, std::shared_ptr<ClosureInstanceNode> instance_it);
     llvm::Function* getCachedClosure(const std::string& name, const std::vector<llvm::Type*> args);
     llvm::FunctionType* getDefaultFnType(uint32_t n_args);
