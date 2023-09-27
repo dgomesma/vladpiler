@@ -371,7 +371,11 @@ namespace Compiler {
     // Call function
     builder.CreateCall(fn, args);
     args.pop_back();
-    return builder.CreateLoad(ret_val->getType(), buffer, "load_ret");        
+    llvm::Value* ret = builder.CreateLoad(ret_val->getType(), buffer, "load_ret");        
+    if (ret->getType()->isPointerTy()) { 
+      ptr_id_table[ret] = ptr_id_table[ret_val];
+    }
+    return ret;
   }
 
   llvm::Value* RinhaCompiler::getVariable(const std::string& name) {
