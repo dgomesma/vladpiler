@@ -350,9 +350,10 @@ namespace Compiler {
   }
 
   llvm::Value* RinhaCompiler::createStr(const std::string& str) {
-    const std::string name = "str";
-    llvm::GlobalVariable* ret = builder.CreateGlobalString(str, name, 0, &module);
-    ptr_type_table[ret->getName().str()] = ret->getValueType();
+    llvm::GlobalVariable* ret = builder.CreateGlobalString(str, "str", 0, &module);
+    std::string id = ret->getName().str();
+    ptr_id_table[ret] = id;
+    ptr_type_table[id] = ret->getValueType();
     return ret;
   }
 
@@ -360,16 +361,18 @@ namespace Compiler {
     llvm::Type* first_type = first->getType();
     llvm::Type* second_type = second->getType();
 
-    const std::string tuple_name = "tuple";
     llvm::StructType* tuple_type = llvm::StructType::get(context, {first_type, second_type});
-    llvm::Value* tuple = builder.CreateAlloca(tuple_type, nullptr, tuple_name);
+    llvm::Value* tuple = builder.CreateAlloca(tuple_type, nullptr, "tuple");
 
-    ptr_type_table[tuple->getName().str()] = tuple_type;
-    llvm::Type* first_ptr_type = first_type->isPointerTy() ? 
-      ptr_type_table[first->getName().str()] : nullptr; 
-    llvm::Type* second_ptr_type = second_type->isPointerTy() ?
-      ptr_type_table[second->getName().str()] : nullptr;
-    tuple_ptr_types[tuple->getName().str()] = {first_ptr_type, second_ptr_type};
+    std::string tuple_id = tuple->getName().str();
+    ptr_id_table[tuple] = tuple_id;
+
+    std::string* first_ptr_id = first_type->isPointerTy() ? 
+      &ptr_id_table[first] : nullptr; 
+    std::string* second_ptr_id = second_type->isPointerTy() ?
+      &ptr_id_table[second] : nullptr;
+    tuple_ptr_types[tuple_id] = {first_ptr_id, second_ptr_id};
+    ptr_type_table[tuple_id] = tuple_type;
 
     llvm::Value* zero = builder.getInt32(0);
     llvm::Value* one = builder.getInt32(1);
@@ -623,7 +626,7 @@ namespace Compiler {
       return tuple_ptr;
     }
 
-    llvm::Type* type = ptr_type_table[tuple_ptr->getName().str()];
+    llvm::Type* type = ptr_type_table[ptr_id_table[tuple_ptr]];
     if (!type) {
       std::cerr << "Error: Could not find an entry on tuple-type map for given pointer." << std::endl;   
       abort();
@@ -637,15 +640,15 @@ namespace Compiler {
       return tuple_ptr;
     }
 
-    llvm::Type* pointee_type = nullptr;
+    std::string* first_id = nullptr;
     if (tuple_type->getElementType(0)->isPointerTy()) {
-      pointee_type = tuple_ptr_types[tuple_ptr->getName().str()].first_ptr_type; 
-      assert(pointee_type);
+      first_id = tuple_ptr_types[ptr_id_table[tuple_ptr]].first_ptr_id; 
+      assert(first_id);
     }
     
     llvm::Value* first_element_ptr = builder.CreateStructGEP(tuple_type, tuple_ptr, 0);
     llvm::LoadInst* load = builder.CreateLoad(tuple_type->getStructElementType(0), first_element_ptr, "first");
-    if (pointee_type) ptr_type_table[load->getName().str()] = pointee_type;
+    if (first_id) ptr_id_table[load] = *first_id;
 
     return load;
   }
@@ -656,7 +659,7 @@ namespace Compiler {
       return tuple_ptr;
     }
 
-    llvm::Type* type = ptr_type_table[tuple_ptr->getName().str()];
+    llvm::Type* type = ptr_type_table[ptr_id_table[tuple_ptr]];
     if (!type) {
       std::cerr << "Error: Could not find an entry on tuple-type map for given pointer." << std::endl;   
       abort();
@@ -672,7 +675,7 @@ namespace Compiler {
     
     llvm::Value* first_element_ptr = builder.CreateStructGEP(tuple_type, tuple_ptr, 1);
     llvm::Value* load = builder.CreateLoad(tuple_type->getStructElementType(1), first_element_ptr, "load");
-    ptr_type_table[load->getName().str()] = tuple_type;
+    ptr_id_table[load] = ptr_id_table[tuple_ptr];
     return load;
   }
 
@@ -688,22 +691,20 @@ namespace Compiler {
     std::string print_name = "print_undefined";
     std::vector<llvm::Type*> args = {};
     llvm::Type* type = val->getType();
+
     if (type->isIntegerTy(1)) {
       print_name = "print_bool";
       args = {llvm::Type::getInt8Ty(context)};
       val = builder.CreateZExt(val, type);
+
     } else if (type->isIntegerTy()) {
       print_name = "print_num";
       args = {val->getType()};
-    } else if (type->isPointerTy()) {
-      std::cerr << "Pointer name: " << val->getName().str() << std::endl;
-      llvm::Type* pointee_type = ptr_type_table[val->getName().str()];
-      assert(pointee_type);
-      std::cerr << "Pointer type: ";
-      pointee_type->print(llvm::errs());
-      std::cerr << std::endl;
 
-      llvm::Type* ptr_type = ptr_type_table[val->getName().str()];
+    } else if (type->isPointerTy()) {
+      llvm::Type* ptr_type = ptr_type_table[ptr_id_table[val]];
+      assert(ptr_type);
+
       
       if (ptr_type->isArrayTy() && ptr_type->getArrayElementType()->isIntegerTy(8)) {
         print_name = "print_str";
