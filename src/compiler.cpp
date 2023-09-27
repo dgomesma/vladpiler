@@ -37,6 +37,13 @@ namespace AST{
   
   Call::Call(std::string* _callee, Arguments* _args) :
     callee(*_callee), args(_args) {} 
+
+  llvm::Value* Call::getVal() {
+    Compiler::RinhaCompiler& compiler = Compiler::RinhaCompiler::getSingleton();
+    std::vector<llvm::Value*> args_val;
+    for (const std::unique_ptr<AST::Term>& arg : args->args) args_val.push_back(arg.get()->getVal());
+    return compiler.callClosure(callee, args_val);
+  }
   
   Binary::Binary(Term* _lhs, Term* _rhs, BinOp _binop) :
     lhs(_lhs), rhs(_rhs), binop(_binop) {}
@@ -72,12 +79,21 @@ namespace AST{
   Function::Function(Parameters* _parameters, Term* _value) :
     parameters(_parameters), value(std::move(_value)) {}
 
+  llvm::Value* Function::getVal() {
+    Compiler::RinhaCompiler& compiler = Compiler::RinhaCompiler::getSingleton();
+    std::vector<std::string> param_names;
+    for (const std::unique_ptr<Parameter>& param : parameters->params) param_names.push_back(*param->identifier);
+    return compiler.createAnonClosure(param_names, value.get());
+  }
+
   Let::Let(Parameter* _parameter, Term* _val, Term* _next) :
     parameter(_parameter), val(_val), next(_next) {}
 
   llvm::Value* Let::getVal() {
     Compiler::RinhaCompiler& compiler = Compiler::RinhaCompiler::getSingleton();
-    compiler.createVariable(*parameter->identifier, val->getVal());
+    llvm::Value* eval_val = val->getVal();
+    if (compiler.isClosure(eval_val)) compiler.assignClosure(*parameter->identifier, eval_val);
+    else compiler.createVariable(*parameter->identifier, val->getVal());
     return next->getVal();
   }
 
@@ -157,8 +173,8 @@ namespace Compiler {
     symbol_tables.back()[name] = {val, nullptr};
   }
 
-  void SymbolTableStack::insertClosure(const std::string& name, const ClosureSignature& closure_sig) {
-    symbol_tables.back()[name] = {nullptr, std::make_unique<ClosureSignature>(closure_sig)};
+  void SymbolTableStack::insertClosure(const std::string& name, ClosureSignature* closure_sig) {
+    symbol_tables.back()[name] = {nullptr, closure_sig};
   }
  
   void SymbolTableStack::pushScope() {
@@ -219,36 +235,80 @@ namespace Compiler {
     return llvm::FunctionType::get(default_type, args, false);
   }
 
-
-  llvm::Value* RinhaCompiler::createClosure(const std::string& name, uint32_t n_args, AST::Term* fn_body) {
-    closure_table[name] = {name, n_args, fn_body};
-    return createClosureVal();
+  bool RinhaCompiler::isClosure(llvm::Value* val) {
+    return closure_table.find(val) != closure_table.end(); 
   }
 
-  llvm::Value* RinhaCompiler::callClosure(const std::string& name, std::vector<llvm::Value*> args) {
-    // TODO: Finish
-    auto opt_closure_sig = closure_table.find(name);
-    if (opt_closure_sig == closure_table.end()) {
+  llvm::Value* RinhaCompiler::assignClosure(const std::string& name, llvm::Value* val) {
+    auto opt_closure = closure_table.find(val);
+    if(closure_table.find(val) == closure_table.end()) {
+      std::cerr << "Trying to assign non-closure when should have been a closure" << std::endl;
+      abort();
+    }
+
+    ClosureSignature* closure = &opt_closure->second;
+    symtbl_stack.insertClosure(name, closure);
+    return val;
+  }
+
+  llvm::Value* RinhaCompiler::createAnonClosure(const std::vector<std::string>& params, AST::Term* fn_body) {
+    llvm::Value* closure = createClosureVal();
+    closure_table[closure] = {params, fn_body};
+    return closure;
+  }
+
+  llvm::Value* RinhaCompiler::callClosure(const std::string& name, std::vector<llvm::Value*>& args) {
+    auto opt_closure_sig = symtbl_stack.getValue(name);
+    if (!opt_closure_sig) {
       std::cerr << "Warning: Trying to call undefined function " + name << std::endl;;
       return createUndefined();
     }
 
-    const ClosureSignature& closure_sig = opt_closure_sig->second;
-    if (args.size() != closure_sig.n_args) {
+    ClosureSignature* closure_sig = opt_closure_sig->closureSig;
+    if (!closure_sig) {
+      std::cerr << "" + name + " refers to a value, not a closure." << std::endl;
+      return createUndefined();
+    }
+
+    if (args.size() != closure_sig->params.size()) {
       std::cerr << "On " + name + " function call: number of arguments don't match" << std::endl;
       return createUndefined();
     }
 
+    llvm::AllocaInst* buffer = builder.CreateAlloca(llvm::Type::getInt64Ty(context), nullptr, "ret_buffer");
+    args.push_back(buffer);
     std::vector<llvm::Type*> arg_types;
     for (llvm::Value* arg : args) arg_types.push_back(arg->getType()); 
    
     llvm::FunctionType* fn_type = llvm::FunctionType::get(llvm::Type::getVoidTy(context), arg_types, false);    
     llvm::Function* fn = llvm::Function::Create(fn_type, llvm::Function::ExternalLinkage, name, module);
+    llvm::BasicBlock* cur_block = builder.GetInsertBlock();
+
     llvm::BasicBlock* fn_entry = llvm::BasicBlock::Create(context, "entry", fn);
     builder.SetInsertPoint(fn_entry);
     symtbl_stack.pushScope();
-    
-    return nullptr;        
+
+    assert(closure_sig->params.size() == fn->arg_size() - 1);
+    uint64_t i = 0;
+    for (i = 0; i < fn->arg_size() - 1; i++) {
+      llvm::Argument* arg = fn->getArg(i);
+      symtbl_stack.insertValue(closure_sig->params[i], arg);
+    }
+
+    assert(i == fn->arg_size() - 1);
+    llvm::Value* ret_buffer_ptr = fn->getArg(i);
+        
+    assert(closure_sig->fn_body);
+    llvm::Value* ret_val = closure_sig->fn_body->getVal();
+    builder.CreateStore(ret_val, ret_buffer_ptr, false);
+    symtbl_stack.popScope();
+    builder.CreateRetVoid();
+
+    builder.SetInsertPoint(cur_block);
+
+    builder.CreateCall(fn, args);
+    args.pop_back();
+    return builder.CreateLoad(ret_val->getType(), buffer, "load_ret");        
   }
 
   llvm::Value* RinhaCompiler::getVariable(const std::string& name) {

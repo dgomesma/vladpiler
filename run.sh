@@ -1,6 +1,10 @@
 #!/bin/bash
+program="print"
+source="testcases/${program}.rinha"
+build="build/${program}.o"
+llfile="llvm/${program}.ll"
 
-./bin/vladpiler testcases/simple.rinha
-llc --filetype=obj llvm/simple.ll -o build/simple.o
-clang -no-pie build/simple.o build/rinha_extern.o -o exec
+./bin/vladpiler ${source}
+llc --filetype=obj ${llfile} -o ${build}
+clang -no-pie ${build} build/rinha_extern.o -o exec
 ./exec

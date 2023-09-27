@@ -11,6 +11,10 @@ namespace Lexer {
 		return strtol(yytext + offset, &end, base);
 	}
 
+	void get_identifier(std::string& buffer) {
+		buffer.assign(yytext, yyleng);
+	}
+
 	void get_str(std::string& buffer) {
 		buffer.assign(yytext, yyleng);
 		buffer = buffer.substr(1, buffer.length() - 2);
