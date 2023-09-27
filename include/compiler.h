@@ -203,7 +203,8 @@ namespace Compiler {
       std::vector<std::string> params;
       AST::Term* fn_body;
     };
- 
+
+    
     struct EitherValOrClosure {
       llvm::Value* val;
       ClosureSignature* closureSig;
@@ -236,6 +237,11 @@ namespace Compiler {
     struct TuplePtrIds{
       std::string* first_ptr_id;    // Assign nullptr if first/second  is not a ptr
       std::string* second_ptr_id;
+    };
+
+    struct ClosureInstanceNode {
+      llvm::Function* fn;
+      std::map<llvm::Type*,std::shared_ptr<ClosureInstanceNode>> children;
     };
  
     static RinhaCompiler* singleton;
@@ -283,13 +289,15 @@ namespace Compiler {
     std::map<llvm::Value*, SpecialValue> special_value_table;
 
     std::map<llvm::Value*, ClosureSignature> closure_table;
-    std::map<ClosureSignature*, std::vector<llvm::Function* >> closure_cache;
+    std::map<std::string, std::map<llvm::Type*, std::shared_ptr<ClosureInstanceNode>>> closure_cache;
    
     void printType(llvm::Type* val);
     void printType(llvm::Value* val);
 
     RinhaCompiler(const std::string& input_file);
     // llvm::Function* lookForCosureInstance(const ClosureSignature& closure_sig, const std::vector<llvm::Value*>& args);
+    llvm::Function* _getCachedClosure(const std::vector<llvm::Type*>& args, uint64_t args_it, std::shared_ptr<ClosureInstanceNode> instance_it);
+    llvm::Function* getCachedClosure(const std::string& name, const std::vector<llvm::Type*> args);
     llvm::FunctionType* getDefaultFnType(uint32_t n_args);
     llvm::Function* createMain();
     llvm::Value* createTupleDescriptor(llvm::Value* tuple);
