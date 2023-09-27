@@ -655,8 +655,8 @@ namespace Compiler {
 
   llvm::Value* RinhaCompiler::getTupleSecond(llvm::Value* tuple_ptr) {
     if (!tuple_ptr->getType()->isPointerTy()) {
-      std::cerr << "Warning: Running first on non-pointer value. " << std::endl; 
-      return tuple_ptr;
+      std::cerr << "Warning: Running second on non-pointer value. " << std::endl; 
+      return createUndefined();
     }
 
     llvm::Type* type = ptr_type_table[ptr_id_table[tuple_ptr]];
@@ -669,13 +669,20 @@ namespace Compiler {
     if (type->isStructTy() && type->getStructNumElements() == 2) 
       tuple_type = llvm::dyn_cast<llvm::StructType>(type);
     else {
-      std::cerr << "Warning: Running first on non-tuple pointer." << std::endl;
-      return tuple_ptr;
+      std::cerr << "Warning: Running second on non-tuple pointer." << std::endl;
+      return createUndefined();
+    }
+
+    std::string* second_id = nullptr;
+    if (tuple_type->getElementType(1)->isPointerTy()) {
+      second_id = tuple_ptr_types[ptr_id_table[tuple_ptr]].second_ptr_id;
+      assert(second_id);
     }
     
-    llvm::Value* first_element_ptr = builder.CreateStructGEP(tuple_type, tuple_ptr, 1);
-    llvm::Value* load = builder.CreateLoad(tuple_type->getStructElementType(1), first_element_ptr, "load");
-    ptr_id_table[load] = ptr_id_table[tuple_ptr];
+    llvm::Value* second_element_ptr = builder.CreateStructGEP(tuple_type, tuple_ptr, 1);
+    llvm::Value* load = builder.CreateLoad(tuple_type->getStructElementType(1), second_element_ptr, "load");
+    if (second_id) ptr_id_table[load] = *second_id;
+
     return load;
   }
 
