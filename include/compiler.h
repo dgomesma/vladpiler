@@ -195,42 +195,29 @@ namespace AST {
 
 namespace Compiler {
 
-  // Keeps track of scoped symbols
-  class SymbolTableStack {
-    struct Identifier {
-      bool isFn;
+    struct ClosureSignature {
       std::string name;
-      llvm::Type* ret;
-      std::vector<llvm::Type*> args;
-
-      Identifier(const std::string& name);  // Creates a variable
-      Identifier(const std::string& name, llvm::Type* ret, std::vector<llvm::Type*> args); // Creates a function
-      Identifier(const std::string& name, llvm::Type* ret, std::initializer_list<llvm::Type*> args); // Creates a function
-
-      bool operator==(const Identifier& other) const;
-    };  
-
-    // Using aliases because there types might be subject to change
-
-    struct IdentifierHasher{
-      std::size_t operator()(const Identifier& identifier) const;
+      uint32_t n_args;      
+      AST::Term* fn_body;
+    };
+ 
+    struct EitherValOrClosure {
+      llvm::Value* val;
+      std::unique_ptr<ClosureSignature> closureSig;
     };
 
-    using SymbolTable = std::unordered_map<Identifier, llvm::Value*, IdentifierHasher>;
+  // Keeps track of scoped symbols
+  class SymbolTableStack {
+
+    using SymbolTable = std::unordered_map<std::string, EitherValOrClosure>;
 
     std::vector<SymbolTable> symbol_tables;
-    llvm::Value* getValue(Identifier id) const;
-    void insertValue(const Identifier& id, llvm::Value* value);
-    void insertGlobalValue(const Identifier& id, llvm::Value* value);
   public:
     SymbolTableStack();
     // Get functions may return nullptr if a corresponding value is not found
-    llvm::Value* getVariable(const std::string& symbol) const;
-    llvm::Function* getFunction(const std::string& symbol, llvm::Type* ret, const std::vector<llvm::Type*>& args) const;
-    void insertVariable(const std::string& name, llvm::Value* value);
-    void insertGlobalVariable(const std::string& name, llvm::Value* value);
-    void insertFunction(const std::string& name, llvm::Type* ret, const std::vector<llvm::Type*>& args, llvm::Function* value);
-    void insertGlobalFunction(const std::string& name, llvm::Type* ret, const std::vector<llvm::Type*>& args, llvm::Function* value);
+    EitherValOrClosure* getValue(const std::string& id);
+    void insertValue(const std::string& name, llvm::Value* value);
+    void insertClosure(const std::string& name, const ClosureSignature& closure_sig);
     void pushScope();
     void popScope();
   };
@@ -254,12 +241,13 @@ namespace Compiler {
     llvm::IRBuilder<> builder;
     llvm::Module module;
 
-    std::unique_ptr<AST::File> ast_root;
-    SymbolTableStack symtbl_stack;
     const std::string& filename;
+    std::unique_ptr<AST::File> ast_root;
     llvm::Type* const default_type;
 
     llvm::IRBuilder<>::InsertPoint externInsertPoint;
+    SymbolTableStack symtbl_stack;
+    std::map<std::string, llvm::Function*> extern_fn_table;
 
     /*  So, I did a little bit of a hack here. The idea is to implement a way
         to associate a "unique identifier" with every pointer value since only
@@ -284,10 +272,24 @@ namespace Compiler {
     std::map<std::string, llvm::Type*> ptr_type_table;
     std::map<std::string, TuplePtrIds> tuple_ptr_types;
 
+    enum class SpecialValue {
+      UNDEFINED = 1,
+      CLOSURE
+    };
+
+    std::map<llvm::Value*, SpecialValue> special_value_table;
+
+    // Also a "hack". While this kinda works, it doesn not respect scoping, so
+    // you can define a closure inside a closure and it will be callable from
+    // outside, where it shouldn't be.
+    std::map<std::string, ClosureSignature> closure_table;
+    std::map<ClosureSignature*, std::vector<llvm::Function* >> closure_cache;
+   
     void printType(llvm::Type* val);
     void printType(llvm::Value* val);
 
     RinhaCompiler(const std::string& input_file);
+    // llvm::Function* lookForCosureInstance(const ClosureSignature& closure_sig, const std::vector<llvm::Value*>& args);
     llvm::FunctionType* getDefaultFnType(uint32_t n_args);
     llvm::Function* createMain();
     llvm::Value* createTupleDescriptor(llvm::Value* tuple);
@@ -314,7 +316,6 @@ namespace Compiler {
     // Prints code to the given output file
     void printCode(const std::string& out_file);
 
-
     // Declare an extern function at the beginning of the module
     llvm::Function* getExternFunction(llvm::Type* ret, const std::vector<llvm::Type*>& args, const std::string& name);
     llvm::Value* getVariable(const std::string& name);
@@ -338,9 +339,9 @@ namespace Compiler {
     llvm::Value* createAnd(AST::Term* value1, AST::Term* value2);
     llvm::Value* createOr(AST::Term* value1, AST::Term* value2);
   
-    llvm::Function* createClosure(const std::string& name, uint32_t n_args);
-    llvm::Function* createFunction(llvm::Type* ret, std::initializer_list<llvm::Type*> args, const std::string& name);
-    llvm::Function* createFunction(llvm::Type* ret, const std::vector<llvm::Type*>& args, const std::string& name);
+    llvm::Value* createClosure(const std::string& name, uint32_t n_args, AST::Term* fn_body);
+    llvm::Value* createClosureVal();
+    llvm::Value* callClosure(const std::string& name, std::vector<llvm::Value*> args);
 
     void createVoidReturn();
     void createReturn(llvm::Value* val);
