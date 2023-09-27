@@ -242,8 +242,9 @@ namespace Compiler {
   class RinhaCompiler {
   private:
 
-    struct TuplePtrTypes{
-      llvm::Type* first_ptr_type;
+    // Fortunately tuples are immutable or else we would have problems
+    struct TupleValues{
+      llvm::Type* first_ptr_type;    // Assign nullptr if first/second  is not a ptr
       llvm::Type* second_ptr_type;
     };
  
@@ -259,7 +260,13 @@ namespace Compiler {
     llvm::Type* const default_type;
 
     llvm::IRBuilder<>::InsertPoint externInsertPoint;
+    // Give the pointer value name with val->getName().str() as key and get the
+    // value back.
     std::map<std::string, llvm::Type*> ptr_type_table;
+    std::map<std::string, TupleValues> tuple_ptr_types;
+
+    void printType(llvm::Type* val);
+    void printType(llvm::Value* val);
 
     RinhaCompiler(const std::string& input_file);
     llvm::FunctionType* getDefaultFnType(uint32_t n_args);
@@ -267,9 +274,9 @@ namespace Compiler {
     llvm::Value* createTupleDescriptor(llvm::Value* tuple);
     llvm::Value* createUndefined();
     
-    bool is32Int(llvm::Value*);
-    bool isInt(llvm::Value*);    
-    bool isBool(llvm::Value*);
+    inline bool is32Int(llvm::Value*);
+    inline bool isInt(llvm::Value*);    
+    inline bool isBool(llvm::Value*);
 
     void printValName(llvm::Value* val);
     void printTuple(llvm::Value* tuple);
