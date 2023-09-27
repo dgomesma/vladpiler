@@ -257,6 +257,29 @@ namespace Compiler {
     return closure;
   }
 
+  llvm::Function* RinhaCompiler::_getCachedClosure(
+  const std::vector<llvm::Type*>& args, 
+  uint64_t args_it, 
+  std::shared_ptr<ClosureInstanceNode> instance_it) {
+
+    if (args_it >= args.size()) return instance_it->fn;
+
+    auto opt_next = instance_it->children.find(args[args_it]);
+    if (opt_next == instance_it->children.end()) return nullptr;
+    return _getCachedClosure(args, args_it + 1, opt_next->second);
+  }
+
+  llvm::Function* RinhaCompiler::getCachedClosure(const std::string& name, std::vector<llvm::Type*> args) {
+    uint64_t args_it = 0;
+    llvm::Type* arg = args[args_it];
+    auto opt_closureInstNode = closure_cache.find(name);
+    if (opt_closureInstNode == closure_cache.end()) return nullptr;
+    std::map<llvm::Type*, std::shared_ptr<ClosureInstanceNode>> roots = opt_closureInstNode->second;
+    auto opt_next = roots.find(arg);
+    if (opt_next == roots.end()) return nullptr;
+    else return _getCachedClosure(args, args_it + 1, opt_next->second);
+  }
+
   llvm::Value* RinhaCompiler::callClosure(const std::string& name, std::vector<llvm::Value*>& args) {
     auto opt_closure_sig = symtbl_stack.getValue(name);
     if (!opt_closure_sig) {
@@ -279,6 +302,8 @@ namespace Compiler {
     args.push_back(buffer);
     std::vector<llvm::Type*> arg_types;
     for (llvm::Value* arg : args) arg_types.push_back(arg->getType()); 
+
+    
    
     llvm::FunctionType* fn_type = llvm::FunctionType::get(llvm::Type::getVoidTy(context), arg_types, false);    
     llvm::Function* fn = llvm::Function::Create(fn_type, llvm::Function::ExternalLinkage, name, module);
