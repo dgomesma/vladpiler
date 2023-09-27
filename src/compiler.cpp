@@ -257,6 +257,31 @@ namespace Compiler {
     return closure;
   }
 
+  void RinhaCompiler::_insertCachedClosure(const std::vector<llvm::Type*>& params, uint64_t param_it, std::shared_ptr<ClosureInstanceNode> node, llvm::Function* fn) {
+    if (param_it >= params.size()){
+      node->fn = fn;
+      return;
+    }
+    llvm::Type* param = params[param_it];
+    auto opt_next = node->children.find(param);
+    if (opt_next == node->children.end()) node->children[param] = std::make_shared<ClosureInstanceNode>();
+    _insertCachedClosure(params, param_it + 1, node->children[param], fn);  
+  }
+
+  void RinhaCompiler::insertCachedClosure(const std::string& name, llvm::Function* fn) {
+    std::vector<llvm::Type*> params = fn->getFunctionType()->params();
+    assert(params.size() > 0);
+    auto opt_typeNodeMap = closure_cache.find(name);
+    if (opt_typeNodeMap == closure_cache.end()) closure_cache[name] 
+      = {}; 
+    std::map<llvm::Type*, std::shared_ptr<ClosureInstanceNode>>& typeNodeMap = closure_cache[name];
+    uint64_t param_it = 0;
+    llvm::Type* arg = params[param_it];
+    auto opt_node = typeNodeMap.find(arg);
+    if (opt_node == typeNodeMap.end()) typeNodeMap[arg] = std::make_shared<ClosureInstanceNode>();
+    _insertCachedClosure(params, param_it + 1, typeNodeMap[arg], fn);
+  }
+  
   llvm::Function* RinhaCompiler::_getCachedClosure(
   const std::vector<llvm::Type*>& args, 
   uint64_t args_it, 
@@ -302,12 +327,12 @@ namespace Compiler {
     args.push_back(buffer);
     std::vector<llvm::Type*> arg_types;
     for (llvm::Value* arg : args) arg_types.push_back(arg->getType()); 
-
-    
    
     llvm::FunctionType* fn_type = llvm::FunctionType::get(llvm::Type::getVoidTy(context), arg_types, false);    
     llvm::Function* fn = llvm::Function::Create(fn_type, llvm::Function::ExternalLinkage, name, module);
     llvm::BasicBlock* cur_block = builder.GetInsertBlock();
+
+    insertCachedClosure(name, fn);
 
     llvm::BasicBlock* fn_entry = llvm::BasicBlock::Create(context, "entry", fn);
     builder.SetInsertPoint(fn_entry);
